@@ -40,22 +40,15 @@ export const AdminMemberManager: React.FC<AdminMemberManagerProps> = ({
   const [role, setRole] = useState<UserRole>('NOC');
   const [department, setDepartment] = useState('Tier 1 NOC - Alpha Shift (Day 07:00 - 19:00)');
   const [tempPassword, setTempPassword] = useState('Noc@2026');
+  const [isSending, setIsSending] = useState(false);
 
-  // Confirmation & Dispatch states
-  const [lastDispatchedInvite, setLastDispatchedInvite] = useState<{ user: User; invite: MemberInvitation } | null>(null);
-  const [successBanner, setSuccessBanner] = useState<string | null>(null);
-  const [copiedLink, setCopiedLink] = useState(false);
-
-  const handleInviteSubmit = (e: React.FormEvent) => {
+const handleInviteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault(); // Good practice to prevent default form submission
     if (!email.trim() || !fullName.trim()) return;
 
     const cleanEmail = email.trim().toLowerCase();
-    if (!cleanEmail.endsWith('@scicom.com.my') && !cleanEmail.endsWith('@scicom.com')) {
-      alert('Access restricted: Only SCICOM corporate emails (@scicom.com.my or @scicom.com) can be invited.');
-      return;
-    }
 
-    // Check if email already exists
+    // Check if email already exists in local list
     const existing = users.find(u => u.email.toLowerCase() === cleanEmail);
     if (existing) {
       alert(`User with email '${cleanEmail}' already exists in the NOC roster.`);
@@ -65,19 +58,57 @@ export const AdminMemberManager: React.FC<AdminMemberManagerProps> = ({
     // Auto-generate username from email
     const username = cleanEmail.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '_');
 
-    const result = onAddMember({
-      username,
-      email: cleanEmail,
-      fullName: fullName.trim(),
-      role,
-      department,
-      status: 'Active',
-      lastLogin: 'Never',
-      requiresPasswordChange: true
-    });
+    setIsSending(true);
 
-    setLastDispatchedInvite(result);
-    setSuccessBanner(`Invitation successfully dispatched to ${cleanEmail}. Account provisioned with role: ${role}. Note: Mandatory password reset is enforced on their first login.`);
+    try {
+      // 1. Create member in local state / database
+      const result = onAddMember({
+        username,
+        email: cleanEmail,
+        fullName: fullName.trim(),
+        role,
+        department,
+        status: 'Active',
+        lastLogin: 'Never',
+        requiresPasswordChange: true
+      });
+
+      // 2. Call your backend API route to deliver the real email
+      const response = await fetch('/api/send-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: cleanEmail,
+          fullName: fullName.trim(),
+          role,
+          department,
+          username,
+          tempPassword,
+          token: result.invite.token,
+          inviteLink: `${window.location.origin}/?invite=${result.invite.token}`
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Backend failed to send email');
+      }
+
+      // 3. UI feedback upon success
+      setLastDispatchedInvite(result);
+      setSuccessBanner(`Invitation successfully sent to ${cleanEmail}.`);
+
+      // Reset form
+      setEmail('');
+      setFullName('');
+      setTempPassword('Noc@2026');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to send invitation email. Check server logs.');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
 
     // Reset inputs
     setEmail('');
@@ -193,6 +224,17 @@ export const AdminMemberManager: React.FC<AdminMemberManagerProps> = ({
                 Add Member Through Email
               </h3>
             </div>
+
+            <button
+              type="submit"
+              disabled={isSending}
+              className={`w-full py-2.5 px-4 bg-[#45a29e] hover:bg-[#66fcf1] text-[#0b0c10] font-bold rounded text-xs uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(69,162,158,0.3)] flex items-center justify-center gap-2 mt-4 ${
+                isSending ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              <Mail className="w-4 h-4" />
+              <span>{isSending ? 'Sending Email...' : 'Send Invitation Email'}</span>
+            </button>
 
             <p className="text-xs text-[#c5c6c7] leading-relaxed">
               Invite a new engineer or supervisor to the portal. Enter their corporate email address to automatically issue credentials and assign permissions.
