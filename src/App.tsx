@@ -13,7 +13,8 @@ import {
   updateMemberRole, 
   toggleMemberStatus, 
   deleteMember,
-  getStoredInvitations
+  getStoredInvitations,
+  updateUserProfile
 } from './utils/storage';
 
 import { Navbar } from './components/Navbar';
@@ -23,6 +24,7 @@ import { CaseDetailModal } from './components/CaseDetailModal';
 import { AddCaseModal } from './components/AddCaseModal';
 import { EscalationMatrix } from './components/EscalationMatrix';
 import { AdminMemberManager } from './components/AdminMemberManager';
+import { ProfileModal } from './components/ProfileModal';
 
 export default function App() {
   // Authentication & Users: start with null so the user lands on the login page with both role credentials
@@ -39,6 +41,7 @@ export default function App() {
   // Modals & Active Selections
   const [selectedCaseForDetail, setSelectedCaseForDetail] = useState<IncidentCase | null>(null);
   const [isAddCaseOpen, setIsAddCaseOpen] = useState<boolean>(false);
+  const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
 
   // Success toast message
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -92,11 +95,21 @@ export default function App() {
     showToast('Member removed from roster.');
   };
 
+  // Handler: Update User Profile (Self)
+  const handleUpdateProfile = (updatedData: Partial<User>) => {
+    if (!currentUser) return;
+    const updated = updateUserProfile(currentUser.id, updatedData);
+    setCurrentUser(updated);
+    setUsers(getStoredUsers());
+    showToast('Your SCICOM profile details have been saved.');
+  };
+
   // If user is not authenticated, render LoginView
   if (!currentUser) {
     return (
       <LoginView
         users={users}
+        onUserUpdated={() => setUsers(getStoredUsers())}
         onLoginSuccess={(authedUser) => {
           setCurrentUser(authedUser);
           showToast(`Welcome back, ${authedUser.fullName} (Signed in as ${authedUser.role}).`);
@@ -114,6 +127,7 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onOpenAddCase={() => setIsAddCaseOpen(true)}
+        onOpenProfile={() => setIsProfileOpen(true)}
         onLogout={() => {
           setCurrentUser(null);
           showToast('You have signed out.');
@@ -133,13 +147,19 @@ export default function App() {
         
         {/* Role Capability Banner */}
         <div className="mb-6 px-4 py-2.5 rounded bg-[#1f2833]/70 border border-[#45a29e]/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="w-2 h-2 rounded-full bg-[#66fcf1] animate-pulse" />
             <span>
               Active Session: <strong className="text-white">{currentUser.fullName}</strong> ({currentUser.email})
             </span>
             <span className="text-[#45a29e]">·</span>
             <span className="font-mono text-[#66fcf1]">Role: {currentUser.role}</span>
+            <button
+              onClick={() => setIsProfileOpen(true)}
+              className="ml-1 text-[11px] text-[#45a29e] hover:text-[#66fcf1] underline font-mono cursor-pointer"
+            >
+              [View / Edit Profile]
+            </button>
           </div>
 
           <div className="flex items-center gap-2">
@@ -198,6 +218,14 @@ export default function App() {
         isOpen={isAddCaseOpen}
         onClose={() => setIsAddCaseOpen(false)}
         onCaseAdded={handleCaseAdded}
+      />
+
+      {/* View & Edit Profile Modal */}
+      <ProfileModal
+        currentUser={currentUser}
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        onUpdateProfile={handleUpdateProfile}
       />
 
       {/* Footer */}

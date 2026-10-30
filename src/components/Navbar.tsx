@@ -14,6 +14,7 @@ interface NavbarProps {
   activeTab: 'cases' | 'escalations' | 'admin';
   setActiveTab: (tab: 'cases' | 'escalations' | 'admin') => void;
   onOpenAddCase: () => void;
+  onOpenProfile: () => void;
   onLogout: () => void;
 }
 
@@ -22,6 +23,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   setActiveTab,
   onOpenAddCase,
+  onOpenProfile,
   onLogout
 }) => {
   return (
@@ -105,18 +107,23 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>Add Case</span>
             </button>
 
-            {/* User & Role Badge */}
-            <div className="flex items-center gap-2 bg-[#0b0c10] border border-[#45a29e]/50 px-2.5 py-1 rounded">
-              <Shield className={`w-3.5 h-3.5 ${currentUser.role === 'Admin' ? 'text-[#66fcf1]' : 'text-[#45a29e]'}`} />
+            {/* User & Role Badge - Clickable to open Profile */}
+            <button
+              onClick={onOpenProfile}
+              className="flex items-center gap-2 bg-[#0b0c10] hover:bg-[#0b0c10]/90 border border-[#45a29e]/50 hover:border-[#66fcf1] px-2.5 py-1 rounded transition-all text-left group cursor-pointer shadow-sm hover:shadow-[0_0_12px_rgba(102,252,241,0.25)]"
+              title="Click to view & edit your SCICOM profile and password"
+            >
+              <Shield className={`w-3.5 h-3.5 shrink-0 ${currentUser.role === 'Admin' ? 'text-[#66fcf1]' : 'text-[#45a29e]'} group-hover:scale-110 transition-transform`} />
               <div className="text-left text-[11px] leading-tight">
-                <div className="text-white font-medium truncate max-w-[100px] sm:max-w-[130px]">
+                <div className="text-white group-hover:text-[#66fcf1] font-medium truncate max-w-[100px] sm:max-w-[130px] transition-colors">
                   {currentUser.fullName}
                 </div>
-                <div className="text-[#66fcf1] font-mono text-[10px]">
-                  Role: {currentUser.role}
+                <div className="text-[#66fcf1] font-mono text-[10px] flex items-center gap-1">
+                  <span>Role: {currentUser.role}</span>
+                  <span className="text-[9px] text-[#45a29e] opacity-75 hidden sm:inline">(Edit)</span>
                 </div>
               </div>
-            </div>
+            </button>
 
             {/* Logout button */}
             <button
@@ -152,6 +159,12 @@ export const Navbar: React.FC<NavbarProps> = ({
               Admin/Members
             </button>
           )}
+          <button
+            onClick={onOpenProfile}
+            className="px-2.5 py-1 rounded bg-[#0b0c10] text-[#66fcf1] border border-[#45a29e]/50 whitespace-nowrap"
+          >
+            Profile
+          </button>
           <button
             onClick={onOpenAddCase}
             className="px-2.5 py-1 rounded bg-[#45a29e] text-[#0b0c10] font-bold whitespace-nowrap"

@@ -11,7 +11,10 @@ export const INITIAL_USERS: User[] = [
     status: 'Active',
     createdAt: '2025-01-15',
     lastLogin: 'Just now',
-    password: 'admin123'
+    password: 'admin123',
+    phone: '+60 12-345 6789',
+    ext: '4401',
+    requiresPasswordChange: false
   },
   {
     id: 'usr-noc-1',
@@ -23,7 +26,10 @@ export const INITIAL_USERS: User[] = [
     status: 'Active',
     createdAt: '2025-02-10',
     lastLogin: '2 hours ago',
-    password: 'noc123'
+    password: 'noc123',
+    phone: '+60 17-889 2314',
+    ext: '4402',
+    requiresPasswordChange: false
   },
   {
     id: 'usr-noc-2',
@@ -35,7 +41,10 @@ export const INITIAL_USERS: User[] = [
     status: 'Active',
     createdAt: '2022-06-01',
     lastLogin: '1 day ago',
-    password: 'rajeev123'
+    password: 'rajeev123',
+    phone: '+60 16-987 6543',
+    ext: '4882',
+    requiresPasswordChange: true
   }
 ];
 

@@ -11,6 +11,9 @@ export interface User {
   createdAt: string;
   lastLogin?: string;
   password?: string;
+  phone?: string;
+  ext?: string;
+  requiresPasswordChange?: boolean;
 }
 
 export type SeverityLevel = 'P1 - Critical' | 'P2 - High' | 'P3 - Medium' | 'P4 - Low';

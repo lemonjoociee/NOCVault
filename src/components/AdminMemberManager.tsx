@@ -47,31 +47,37 @@ export const AdminMemberManager: React.FC<AdminMemberManagerProps> = ({
   const [copiedLink, setCopiedLink] = useState(false);
 
   const handleInviteSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
     if (!email.trim() || !fullName.trim()) return;
 
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail.endsWith('@scicom.com.my') && !cleanEmail.endsWith('@scicom.com')) {
+      alert('Access restricted: Only SCICOM corporate emails (@scicom.com.my or @scicom.com) can be invited.');
+      return;
+    }
+
     // Check if email already exists
-    const existing = users.find(u => u.email.toLowerCase() === email.trim().toLowerCase());
+    const existing = users.find(u => u.email.toLowerCase() === cleanEmail);
     if (existing) {
-      alert(`User with email '${email}' already exists in the NOC roster.`);
+      alert(`User with email '${cleanEmail}' already exists in the NOC roster.`);
       return;
     }
 
     // Auto-generate username from email
-    const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    const username = cleanEmail.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '_');
 
     const result = onAddMember({
       username,
-      email: email.trim().toLowerCase(),
+      email: cleanEmail,
       fullName: fullName.trim(),
       role,
       department,
       status: 'Active',
-      lastLogin: 'Never'
+      lastLogin: 'Never',
+      requiresPasswordChange: true
     });
 
     setLastDispatchedInvite(result);
-    setSuccessBanner(`Invitation successfully dispatched to ${email}. Account created with role: ${role}.`);
+    setSuccessBanner(`Invitation successfully dispatched to ${cleanEmail}. Account provisioned with role: ${role}. Note: Mandatory password reset is enforced on their first login.`);
 
     // Reset inputs
     setEmail('');
@@ -354,17 +360,24 @@ export const AdminMemberManager: React.FC<AdminMemberManagerProps> = ({
 
                         {/* Status */}
                         <td className="py-3 px-3 whitespace-nowrap">
-                          {u.status === 'Active' ? (
-                            <span className="text-[11px] text-[#66fcf1] flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-[#66fcf1]" />
-                              Active
-                            </span>
-                          ) : (
-                            <span className="text-[11px] text-[#ff4d4d] flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-[#ff4d4d]" />
-                              Suspended
-                            </span>
-                          )}
+                          <div className="space-y-0.5">
+                            {u.status === 'Active' ? (
+                              <span className="text-[11px] text-[#66fcf1] flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#66fcf1]" />
+                                Active
+                              </span>
+                            ) : (
+                              <span className="text-[11px] text-[#ff4d4d] flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#ff4d4d]" />
+                                Suspended
+                              </span>
+                            )}
+                            {u.requiresPasswordChange && (
+                              <span className="inline-block px-1.5 py-0.2 bg-[#ffaa00]/15 text-[#ffaa00] border border-[#ffaa00]/30 rounded text-[9px] font-mono">
+                                1st Login Pending
+                              </span>
+                            )}
+                          </div>
                         </td>
 
                         {/* Actions */}

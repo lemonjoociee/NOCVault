@@ -15,15 +15,22 @@ export function getStoredUsers(): User[] {
       return INITIAL_USERS;
     }
     const parsed: User[] = JSON.parse(raw);
-    // Ensure all default users have passwords populated
+    // Ensure all users have passwords and attributes populated
     const merged = parsed.map(u => {
-      if (!u.password) {
-        if (u.username === 'admin') return { ...u, password: 'admin123' };
-        if (u.username === 'noc_lead') return { ...u, password: 'noc123' };
-        if (u.username === 'rajeev') return { ...u, password: 'rajeev123' };
-        return { ...u, password: 'Noc@2026' };
+      let pwd = u.password;
+      if (!pwd) {
+        if (u.username === 'admin') pwd = 'admin123';
+        else if (u.username === 'noc_lead') pwd = 'noc123';
+        else if (u.username === 'rajeev') pwd = 'rajeev123';
+        else pwd = 'Noc@2026';
       }
-      return u;
+      return {
+        ...u,
+        password: pwd,
+        phone: u.phone || (u.username === 'admin' ? '+60 12-345 6789' : u.username === 'noc_lead' ? '+60 17-889 2314' : '+60 16-987 6543'),
+        ext: u.ext || (u.username === 'admin' ? '4401' : u.username === 'noc_lead' ? '4402' : '4882'),
+        requiresPasswordChange: u.requiresPasswordChange !== undefined ? u.requiresPasswordChange : (u.username === 'rajeev')
+      };
     });
     return merged;
   } catch (e) {
@@ -49,7 +56,9 @@ export function addMember(newUser: Omit<User, 'id' | 'createdAt'>): { user: User
     ...newUser,
     id,
     createdAt: now,
-    status: 'Active'
+    status: 'Active',
+    password: newUser.password || 'Welcome@2026',
+    requiresPasswordChange: true // New first-time user must change password on first login
   };
 
   const updatedUsers = [createdUser, ...users];
@@ -72,6 +81,47 @@ export function addMember(newUser: Omit<User, 'id' | 'createdAt'>): { user: User
   saveInvitations([invite, ...invites]);
 
   return { user: createdUser, invite };
+}
+
+export function updateUserProfile(userId: string, updates: Partial<User>): User {
+  const users = getStoredUsers();
+  let updatedUser: User | null = null;
+  const updated = users.map(u => {
+    if (u.id === userId) {
+      updatedUser = { ...u, ...updates };
+      return updatedUser;
+    }
+    return u;
+  });
+  saveUsers(updated);
+  return updatedUser || users[0];
+}
+
+export function updateUserPassword(userId: string, newPassword: string, requiresPasswordChange: boolean = false): User {
+  return updateUserProfile(userId, {
+    password: newPassword,
+    requiresPasswordChange
+  });
+}
+
+export function resetUserPasswordByEmail(email: string, newPassword: string): boolean {
+  const cleanEmail = email.trim().toLowerCase();
+  const users = getStoredUsers();
+  const target = users.find(u => u.email.toLowerCase() === cleanEmail);
+  if (!target) return false;
+
+  const updated = users.map(u => {
+    if (u.email.toLowerCase() === cleanEmail) {
+      return {
+        ...u,
+        password: newPassword,
+        requiresPasswordChange: false
+      };
+    }
+    return u;
+  });
+  saveUsers(updated);
+  return true;
 }
 
 export function updateMemberRole(userId: string, newRole: 'NOC' | 'Admin'): User[] {
