@@ -51,6 +51,9 @@ export const AdminMemberManager: React.FC<AdminMemberManagerProps> = ({
     messageId?: string;
   } | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+  
+  // Custom confirmation modal state for deleting accounts without window.confirm
+  const [memberToDelete, setMemberToDelete] = useState<User | null>(null);
 
   // Standard email validation (allows any valid inbox, removing corporate restriction)
   const isValidEmail = (addr: string): boolean => {
@@ -530,20 +533,19 @@ export const AdminMemberManager: React.FC<AdminMemberManagerProps> = ({
                               <RefreshCw className="w-3.5 h-3.5" />
                             </button>
 
-                            {/* Delete button */}
+                            {/* Delete button (opens confirmation modal) */}
                             <button
-                              onClick={() => {
-                                if (window.confirm(`Are you sure you want to remove ${u.fullName} from the NOC portal?`)) {
-                                  onDeleteMember(u.id);
-                                }
-                              }}
+                              type="button"
+                              onClick={() => setMemberToDelete(u)}
                               disabled={isSelf}
-                              className={`p-1 rounded text-[#ff4d4d] hover:bg-[#ff4d4d]/20 transition-colors ${
-                                isSelf ? 'opacity-40 cursor-not-allowed' : ''
+                              className={`p-1.5 rounded text-[#ff4d4d] hover:bg-[#ff4d4d]/20 transition-all ${
+                                isSelf 
+                                  ? 'opacity-30 cursor-not-allowed' 
+                                  : 'cursor-pointer hover:scale-110 active:scale-95'
                               }`}
-                              title="Delete Member"
+                              title={isSelf ? 'Cannot delete your own active session account' : `Delete ${u.fullName}`}
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Trash2 className="w-4 h-4" />
                             </button>
 
                           </div>
@@ -590,6 +592,81 @@ export const AdminMemberManager: React.FC<AdminMemberManagerProps> = ({
         </div>
 
       </div>
+
+      {/* Delete Member Confirmation Modal */}
+      {memberToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#1f2833] border border-[#ff4d4d]/60 rounded-xl max-w-md w-full p-6 shadow-[0_0_35px_rgba(255,77,77,0.35)] space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-[#ff4d4d]/20 border border-[#ff4d4d]/50 flex items-center justify-center text-[#ff4d4d] shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white font-mono uppercase tracking-wide">
+                  Confirm Member Removal
+                </h3>
+                <p className="text-xs text-[#c5c6c7]">SCICOM NOC Directory Action</p>
+              </div>
+            </div>
+
+            <div className="bg-[#0b0c10] border border-[#45a29e]/30 rounded-lg p-3.5 space-y-2 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-[#45a29e] font-mono">Member:</span>
+                <span className="text-white font-bold text-sm">{memberToDelete.fullName}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[#45a29e] font-mono">Account Email:</span>
+                <span className="text-[#66fcf1] font-mono">{memberToDelete.email}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[#45a29e] font-mono">Username:</span>
+                <span className="text-white font-mono">{memberToDelete.username}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[#45a29e] font-mono">Current Role:</span>
+                <span className="px-2 py-0.5 rounded bg-[#1f2833] text-[#66fcf1] border border-[#45a29e]/40 font-mono text-[10px]">
+                  {memberToDelete.role}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[#45a29e] font-mono">Shift / Unit:</span>
+                <span className="text-[#c5c6c7] truncate max-w-[200px] text-right">{memberToDelete.department}</span>
+              </div>
+
+              <div className="pt-2.5 mt-2 border-t border-[#45a29e]/20 text-[11px] text-[#ff4d4d] flex items-start gap-2 bg-[#ff4d4d]/5 p-2 rounded">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>
+                  Are you sure you want to remove this account? This will immediately revoke their portal access and remove their credentials from the NOC roster.
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setMemberToDelete(null)}
+                className="px-4 py-2 rounded-lg bg-[#0b0c10] border border-[#45a29e]/50 text-[#c5c6c7] hover:text-white hover:border-[#66fcf1] text-xs font-mono transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const targetName = memberToDelete.fullName;
+                  onDeleteMember(memberToDelete.id);
+                  setMemberToDelete(null);
+                  setSuccessBanner(`Account "${targetName}" has been successfully removed.`);
+                  setTimeout(() => setSuccessBanner(null), 4000);
+                }}
+                className="px-4 py-2 rounded-lg bg-[#ff4d4d] hover:bg-[#ff3333] text-white text-xs font-mono font-bold transition-all shadow-[0_0_15px_rgba(255,77,77,0.4)] flex items-center gap-1.5 cursor-pointer active:scale-95"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Delete Account
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

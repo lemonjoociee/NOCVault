@@ -33,11 +33,16 @@ function emailInvitePlugin(): Plugin {
               const smtpUser = process.env.SMTP_USER;
               const smtpPass = process.env.SMTP_PASS;
               const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
-              const smtpPort = parseInt(process.env.SMTP_PORT || '465', 10);
-              const smtpSecure = process.env.SMTP_SECURE !== undefined 
-                ? process.env.SMTP_SECURE === 'true' 
-                : smtpPort === 465;
-              const smtpFrom = process.env.SMTP_FROM || smtpUser || 'NOCVault Ops <no-reply@nocvault.internal>';
+              const smtpPort = Number(process.env.SMTP_PORT) || 587;
+              // If SMTP_PORT is 587, ensure secure is false (uses STARTTLS); port 465 uses SSL/TLS (secure: true)
+              const smtpSecure = smtpPort === 587 
+                ? false 
+                : (process.env.SMTP_SECURE !== undefined 
+                    ? process.env.SMTP_SECURE === 'true' 
+                    : smtpPort === 465);
+              const smtpFrom = process.env.SMTP_FROM || smtpUser || 'NOC Operations Portal <no-reply@nocvault.internal>';
+
+              console.log(`[SMTP Config] Host: ${smtpHost}, Port: ${smtpPort} (${typeof smtpPort}), Secure: ${smtpSecure}`);
 
               // If SMTP credentials are configured, dispatch real email
               if (smtpUser && smtpPass) {

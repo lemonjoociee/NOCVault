@@ -30,6 +30,7 @@ export const EscalationMatrix: React.FC<EscalationMatrixProps> = ({ currentUser 
   // Modal / Form state for Add or Edit
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<EscalationContact | null>(null);
+  const [contactToDelete, setContactToDelete] = useState<EscalationContact | null>(null);
 
   // Form fields
   const [tier, setTier] = useState('');
@@ -119,12 +120,11 @@ export const EscalationMatrix: React.FC<EscalationMatrixProps> = ({ currentUser 
     handleCloseModal();
   };
 
-  const handleDelete = (contactId: string, contactTier: string) => {
-    if (!isAdmin) return;
-    if (window.confirm(`Are you sure you want to remove "${contactTier}" from the escalation directory?`)) {
-      const updated = deleteEscalationContact(contactId);
-      setContacts(updated);
-    }
+  const handleConfirmDelete = () => {
+    if (!isAdmin || !contactToDelete) return;
+    const updated = deleteEscalationContact(contactToDelete.id);
+    setContacts(updated);
+    setContactToDelete(null);
   };
 
   return (
@@ -215,9 +215,10 @@ export const EscalationMatrix: React.FC<EscalationMatrixProps> = ({ currentUser 
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={() => handleDelete(team.id, team.tier)}
-                        className="p-1 text-[#c5c6c7] hover:text-[#ff4d4d] hover:bg-[#ff4d4d]/20 rounded transition-colors"
-                        title="Delete Contact"
+                        type="button"
+                        onClick={() => setContactToDelete(team)}
+                        className="p-1 text-[#c5c6c7] hover:text-[#ff4d4d] hover:bg-[#ff4d4d]/20 rounded transition-colors cursor-pointer"
+                        title={`Delete ${team.tier}`}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -407,6 +408,61 @@ export const EscalationMatrix: React.FC<EscalationMatrixProps> = ({ currentUser 
               </div>
             </form>
 
+          </div>
+        </div>
+      )}
+
+      {/* Delete Contact Confirmation Modal */}
+      {contactToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#1f2833] border border-[#ff4d4d]/60 rounded-xl max-w-md w-full p-6 shadow-[0_0_35px_rgba(255,77,77,0.35)] space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-[#ff4d4d]/20 border border-[#ff4d4d]/50 flex items-center justify-center text-[#ff4d4d] shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white font-mono uppercase tracking-wide">
+                  Remove Escalation Contact
+                </h3>
+                <p className="text-xs text-[#c5c6c7]">SCICOM Directory Action</p>
+              </div>
+            </div>
+
+            <div className="bg-[#0b0c10] border border-[#45a29e]/30 rounded-lg p-3.5 space-y-2 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-[#45a29e] font-mono">Tier / Unit:</span>
+                <span className="text-white font-bold">{contactToDelete.tier}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[#45a29e] font-mono">Role:</span>
+                <span className="text-[#c5c6c7]">{contactToDelete.role}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[#45a29e] font-mono">Contact:</span>
+                <span className="text-[#66fcf1] font-mono">{contactToDelete.contact}</span>
+              </div>
+              <div className="pt-2 text-[11px] text-[#ff4d4d]">
+                Are you sure you want to remove this tier contact from the active on-call escalation directory?
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setContactToDelete(null)}
+                className="px-4 py-2 rounded-lg bg-[#0b0c10] border border-[#45a29e]/50 text-[#c5c6c7] hover:text-white text-xs font-mono transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                className="px-4 py-2 rounded-lg bg-[#ff4d4d] hover:bg-[#ff3333] text-white text-xs font-mono font-bold transition-all shadow-[0_0_15px_rgba(255,77,77,0.4)] flex items-center gap-1.5 cursor-pointer active:scale-95"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Remove Contact
+              </button>
+            </div>
           </div>
         </div>
       )}
