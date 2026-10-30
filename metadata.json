@@ -1,0 +1,6 @@
+{
+  "name": "NOC Operations & Incident Guide",
+  "description": "Standard operating guide, troubleshooting workflows, escalation paths, and automated incident response scripts for NOC engineers and administrators.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

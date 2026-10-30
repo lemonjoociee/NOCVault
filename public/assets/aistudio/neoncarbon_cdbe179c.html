@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOC Operational Guide</title>
+    <style>
+        :root {
+            --bg-color: #0b0c10;
+            --card-bg: #1f2833;
+            --text-color: #c5c6c7;
+            --accent-green: #66fcf1;
+            --accent-dark-green: #45a29e;
+            --danger-color: #ff4d4d;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background-color: var(--card-bg);
+            border: 1px solid var(--accent-dark-green);
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(102, 252, 241, 0.2);
+            padding: 30px;
+            box-sizing: border-box;
+        }
+
+        h1, h2, h3 {
+            color: var(--accent-green);
+            margin-top: 0;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        input[type="text"], input[type="password"], select {
+            width: 100%;
+            padding: 10px;
+            background-color: #0b0c10;
+            border: 1px solid var(--accent-dark-green);
+            border-radius: 4px;
+            color: #fff;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: var(--accent-dark-green);
+            color: #0b0c10;
+            font-weight: bold;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: var(--accent-green);
+        }
+
+        .nav-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--accent-dark-green);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .badge {
+            background-color: var(--accent-dark-green);
+            color: #0b0c10;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .card {
+            background-color: #0b0c10;
+            border-left: 4px solid var(--accent-green);
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .error-msg {
+            color: var(--danger-color);
+            margin-bottom: 15px;
+        }
+
+        code {
+            background-color: #2b2b2b;
+            color: var(--accent-green);
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Login View -->
+    <div id="login-view">
+        <h1>NOC Operations Portal</h1>
+        <p>Authenticate to access system guides and operational workflows.</p>
+        <div id="login-error" class="error-msg hidden">Invalid username or password.</div>
+        <form id="login-form">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" required autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" required>
+            </div>
+            <div class="form-group">
+                <label for="role">Requested Session Role</label>
+                <select id="role">
+                    <option value="NOC">NOC Operator</option>
+                    <option value="Admin">System Administrator</option>
+                </select>
+            </div>
+            <button type="submit">Sign In</button>
+        </form>
+    </div>
+
+    <!-- Main Dashboard View -->
+    <div id="dashboard-view" class="hidden">
+        <div class="nav-bar">
+            <div>
+                <span h2 style="margin:0;">NOC Knowledge Base</h2>
+                <span id="user-badge" class="badge">Role: Guest</span>
+            </div>
+            <button id="logout-btn" style="width: auto; padding: 8px 16px;">Logout</button>
+        </div>
+
+        <!-- NOC Guide Section -->
+        <div id="noc-content">
+            <h3>Standard Operating Procedures</h3>
+            
+            <div class="card">
+                <h4>VPN Failure Diagnostics</h4>
+                <p><strong>1. SolarWinds Check:</strong> Navigate to SolarWinds (<code>http://10.1.27.165</code>) and query for <code>VPN</code>.</p>
+                <p><strong>2. Target Nodes:</strong> Verify operational status for nodes <code>10.11.4.28</code>, <code>10.11.4.21</code>, and <code>10.11.4.22</code>.</p>
+                <p><strong>3. Diagnostic Commands:</strong> Execute ICMP ping and DNS resolution tests:</p>
+                <pre><code>nslookup medical.emgs.com.my 10.1.2.1
+nslookup stars.educationmalaysia.gov.my 10.1.2.1</code></pre>
+            </div>
+
+            <div class="card">
+                <h4>API & Tracking Failure Diagnostics</h4>
+                <p><strong>1. Verification:</strong> Access the external tracking portal and test document processing.</p>
+                <p><strong>2. Isolation:</strong> Compare results between internal network requests and external network routes.</p>
+            </div>
+        </div>
+
+        <!-- Admin Only Section -->
+        <div id="admin-content" class="hidden">
+            <h3>Admin Management Dashboard</h3>
+            <div class="card" style="border-left-color: var(--accent-dark-green);">
+                <h4>SOP Management & System Configuration</h4>
+                <p>Admin privileges verified. You have access to edit guides, manage user roles, and update system integration parameters.</p>
+                <button style="width: auto; background-color: var(--accent-green);">Edit SOP Documents</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Front-end state handling demonstration
+    const loginForm = document.getElementById('login-form');
+    const loginView = document.getElementById('login-view');
+    const dashboardView = document.getElementById('dashboard-view');
+    const adminContent = document.getElementById('admin-content');
+    const userBadge = document.getElementById('user-badge');
+    const logoutBtn = document.getElementById('logout-btn');
+    const loginError = document.getElementById('login-error');
+
+    loginForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const username = document.getElementById('username').value;
+        const role = document.getElementById('role').value;
+
+        // In a production application, authentication must be validated server-side via secure API.
+        if (username.trim() !== "") {
+            loginError.classList.add('hidden');
+            loginView.classList.add('hidden');
+            dashboardView.classList.remove('hidden');
+
+            userBadge.textContent = `Role: ${role}`;
+
+            if (role === 'Admin') {
+                adminContent.classList.remove('hidden');
+            } else {
+                adminContent.classList.add('hidden');
+            }
+        } else {
+            loginError.classList.remove('hidden');
+        }
+    });
+
+    logoutBtn.addEventListener('click', function() {
+        dashboardView.classList.add('hidden');
+        loginView.classList.remove('hidden');
+        document.getElementById('password').value = '';
+    });
+</script>
+
+</body>
+</html>
