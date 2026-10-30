@@ -2,20 +2,17 @@ import React from 'react';
 import { User } from '../types';
 import { 
   BookOpen, 
-  Terminal, 
   AlertTriangle, 
   Users, 
   PlusCircle, 
   LogOut, 
-  FileText,
-  Shield,
-  Activity
+  Shield
 } from 'lucide-react';
 
 interface NavbarProps {
   currentUser: User;
-  activeTab: 'cases' | 'scripts' | 'escalations' | 'admin' | 'pdfs';
-  setActiveTab: (tab: 'cases' | 'scripts' | 'escalations' | 'admin' | 'pdfs') => void;
+  activeTab: 'cases' | 'escalations' | 'admin';
+  setActiveTab: (tab: 'cases' | 'escalations' | 'admin') => void;
   onOpenAddCase: () => void;
   onLogout: () => void;
 }
@@ -32,17 +29,21 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 gap-4">
           
-          {/* Zone 1: Brand Wordmark */}
+          {/* Zone 1: Brand Wordmark with Scicom Logo */}
           <div className="flex items-center gap-3 shrink-0">
-            <div className="w-9 h-9 rounded bg-[#0b0c10] border border-[#66fcf1] flex items-center justify-center text-[#66fcf1]">
-              <Activity className="w-5 h-5 animate-pulse" />
+            <div className="h-9 flex items-center justify-center shrink-0">
+              <img
+                src="/assets/aistudio/Scicom_MSC_Berhad_idpuWHQlKm_1_283b6397.png"
+                alt="SCICOM"
+                className="h-8 w-auto object-contain"
+              />
             </div>
             <div>
               <div className="text-base sm:text-lg font-bold text-[#66fcf1] tracking-wider uppercase font-mono">
                 NOC Operations Portal
               </div>
               <div className="text-[11px] text-[#45a29e] hidden sm:block">
-                Standard Operating Procedures &amp; Automated Incident Response
+                Standard Operating Procedures &amp; Escalation Paths
               </div>
             </div>
           </div>
@@ -51,7 +52,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <nav className="hidden md:flex items-center gap-1 sm:gap-2">
             <button
               onClick={() => setActiveTab('cases')}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-medium transition-all whitespace-nowrap shrink-0 ${
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded text-xs font-medium transition-all whitespace-nowrap shrink-0 ${
                 activeTab === 'cases'
                   ? 'bg-[#0b0c10] text-[#66fcf1] border border-[#66fcf1]/50 shadow-sm'
                   : 'text-[#c5c6c7] hover:text-[#66fcf1] hover:bg-[#0b0c10]/40'
@@ -62,20 +63,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
 
             <button
-              onClick={() => setActiveTab('scripts')}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-medium transition-all whitespace-nowrap shrink-0 ${
-                activeTab === 'scripts'
-                  ? 'bg-[#0b0c10] text-[#66fcf1] border border-[#66fcf1]/50 shadow-sm'
-                  : 'text-[#c5c6c7] hover:text-[#66fcf1] hover:bg-[#0b0c10]/40'
-              }`}
-            >
-              <Terminal className="w-3.5 h-3.5" />
-              <span>Incident Scripts</span>
-            </button>
-
-            <button
               onClick={() => setActiveTab('escalations')}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-medium transition-all whitespace-nowrap shrink-0 ${
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded text-xs font-medium transition-all whitespace-nowrap shrink-0 ${
                 activeTab === 'escalations'
                   ? 'bg-[#0b0c10] text-[#66fcf1] border border-[#66fcf1]/50 shadow-sm'
                   : 'text-[#c5c6c7] hover:text-[#66fcf1] hover:bg-[#0b0c10]/40'
@@ -85,23 +74,11 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>Escalation Matrix</span>
             </button>
 
-            <button
-              onClick={() => setActiveTab('pdfs')}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-medium transition-all whitespace-nowrap shrink-0 ${
-                activeTab === 'pdfs'
-                  ? 'bg-[#0b0c10] text-[#66fcf1] border border-[#66fcf1]/50 shadow-sm'
-                  : 'text-[#c5c6c7] hover:text-[#66fcf1] hover:bg-[#0b0c10]/40'
-              }`}
-            >
-              <FileText className="w-3.5 h-3.5" />
-              <span>Original Guides</span>
-            </button>
-
             {/* Admin Exclusive Tab */}
             {currentUser.role === 'Admin' && (
               <button
                 onClick={() => setActiveTab('admin')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-medium transition-all whitespace-nowrap shrink-0 ${
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded text-xs font-medium transition-all whitespace-nowrap shrink-0 ${
                   activeTab === 'admin'
                     ? 'bg-[#0b0c10] text-[#66fcf1] border border-[#66fcf1]/50 shadow-sm'
                     : 'text-[#45a29e] hover:text-[#66fcf1] hover:bg-[#0b0c10]/40'
@@ -157,39 +134,27 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex md:hidden items-center justify-between py-2 border-t border-[#45a29e]/20 gap-1 overflow-x-auto text-[11px]">
           <button
             onClick={() => setActiveTab('cases')}
-            className={`px-2 py-1 rounded whitespace-nowrap ${activeTab === 'cases' ? 'bg-[#0b0c10] text-[#66fcf1]' : 'text-[#c5c6c7]'}`}
+            className={`px-3 py-1 rounded whitespace-nowrap ${activeTab === 'cases' ? 'bg-[#0b0c10] text-[#66fcf1]' : 'text-[#c5c6c7]'}`}
           >
             SOPs
           </button>
           <button
-            onClick={() => setActiveTab('scripts')}
-            className={`px-2 py-1 rounded whitespace-nowrap ${activeTab === 'scripts' ? 'bg-[#0b0c10] text-[#66fcf1]' : 'text-[#c5c6c7]'}`}
-          >
-            Scripts
-          </button>
-          <button
             onClick={() => setActiveTab('escalations')}
-            className={`px-2 py-1 rounded whitespace-nowrap ${activeTab === 'escalations' ? 'bg-[#0b0c10] text-[#66fcf1]' : 'text-[#c5c6c7]'}`}
+            className={`px-3 py-1 rounded whitespace-nowrap ${activeTab === 'escalations' ? 'bg-[#0b0c10] text-[#66fcf1]' : 'text-[#c5c6c7]'}`}
           >
             Escalation
-          </button>
-          <button
-            onClick={() => setActiveTab('pdfs')}
-            className={`px-2 py-1 rounded whitespace-nowrap ${activeTab === 'pdfs' ? 'bg-[#0b0c10] text-[#66fcf1]' : 'text-[#c5c6c7]'}`}
-          >
-            Guides
           </button>
           {currentUser.role === 'Admin' && (
             <button
               onClick={() => setActiveTab('admin')}
-              className={`px-2 py-1 rounded whitespace-nowrap ${activeTab === 'admin' ? 'bg-[#0b0c10] text-[#66fcf1]' : 'text-[#45a29e]'}`}
+              className={`px-3 py-1 rounded whitespace-nowrap ${activeTab === 'admin' ? 'bg-[#0b0c10] text-[#66fcf1]' : 'text-[#45a29e]'}`}
             >
               Admin/Members
             </button>
           )}
           <button
             onClick={onOpenAddCase}
-            className="px-2 py-1 rounded bg-[#45a29e] text-[#0b0c10] font-bold whitespace-nowrap"
+            className="px-2.5 py-1 rounded bg-[#45a29e] text-[#0b0c10] font-bold whitespace-nowrap"
           >
             + Case
           </button>

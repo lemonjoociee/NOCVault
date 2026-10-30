@@ -1,16 +1,14 @@
 import React, { useState } from 'react';
-import { IncidentCase, AutomatedScript } from '../types';
+import { IncidentCase } from '../types';
 import { 
   X, 
   CheckSquare, 
   Square, 
   Copy, 
   Check, 
-  Terminal, 
   FileText, 
   AlertTriangle, 
   Server, 
-  ExternalLink,
   ShieldAlert,
   Clock,
   Key
@@ -19,21 +17,17 @@ import {
 interface CaseDetailModalProps {
   incidentCase: IncidentCase | null;
   onClose: () => void;
-  onRunScript: (script: AutomatedScript) => void;
-  onOpenPdf: (pdfPath: string, title: string) => void;
-  onGenerateEscalation: (incidentCase: IncidentCase) => void;
+  onOpenPdf?: (pdfPath: string, title: string) => void;
 }
 
 export const CaseDetailModal: React.FC<CaseDetailModalProps> = ({
   incidentCase,
   onClose,
-  onRunScript,
-  onOpenPdf,
-  onGenerateEscalation
+  onOpenPdf
 }) => {
   const [completedSteps, setCompletedSteps] = useState<Record<number, boolean>>({});
   const [copiedText, setCopiedText] = useState<string | null>(null);
-  const [activeSubTab, setActiveSubTab] = useState<'workflow' | 'scripts' | 'escalation'>('workflow');
+  const [activeSubTab, setActiveSubTab] = useState<'workflow' | 'escalation'>('workflow');
 
   if (!incidentCase) return null;
 
@@ -75,8 +69,8 @@ export const CaseDetailModal: React.FC<CaseDetailModalProps> = ({
               <span className={`px-2 py-0.5 rounded border text-xs font-semibold ${getSeverityBadgeClass(incidentCase.severity)}`}>
                 {incidentCase.severity}
               </span>
-              <span className="text-[#c5c6c7] font-medium">
-                {incidentCase.category}
+              <span className="text-[#c5c6c7] font-medium font-mono text-xs">
+                Project: <strong className="text-white font-semibold">{incidentCase.category}</strong>
               </span>
               <span className="text-[#45a29e]">·</span>
               <span className="text-[#c5c6c7]/70 text-[11px]">
@@ -99,10 +93,10 @@ export const CaseDetailModal: React.FC<CaseDetailModalProps> = ({
 
         {/* Sub Navigation Bar */}
         <div className="px-4 sm:px-6 bg-[#141c24] border-b border-[#45a29e]/30 flex items-center justify-between gap-2 overflow-x-auto">
-          <div className="flex items-center gap-1 sm:gap-4 text-xs font-semibold">
+          <div className="flex items-center gap-2 sm:gap-4 text-xs font-semibold">
             <button
               onClick={() => setActiveSubTab('workflow')}
-              className={`py-3 px-2 border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+              className={`py-3 px-3 border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap ${
                 activeSubTab === 'workflow'
                   ? 'border-[#66fcf1] text-[#66fcf1]'
                   : 'border-transparent text-[#c5c6c7] hover:text-white'
@@ -113,20 +107,8 @@ export const CaseDetailModal: React.FC<CaseDetailModalProps> = ({
             </button>
 
             <button
-              onClick={() => setActiveSubTab('scripts')}
-              className={`py-3 px-2 border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap ${
-                activeSubTab === 'scripts'
-                  ? 'border-[#66fcf1] text-[#66fcf1]'
-                  : 'border-transparent text-[#c5c6c7] hover:text-white'
-              }`}
-            >
-              <Terminal className="w-3.5 h-3.5" />
-              <span>Response Scripts ({incidentCase.scripts.length})</span>
-            </button>
-
-            <button
               onClick={() => setActiveSubTab('escalation')}
-              className={`py-3 px-2 border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+              className={`py-3 px-3 border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap ${
                 activeSubTab === 'escalation'
                   ? 'border-[#66fcf1] text-[#66fcf1]'
                   : 'border-transparent text-[#c5c6c7] hover:text-white'
@@ -136,19 +118,6 @@ export const CaseDetailModal: React.FC<CaseDetailModalProps> = ({
               <span>Escalation Matrix</span>
             </button>
           </div>
-
-          {/* Quick PDF Attachment button if available */}
-          {incidentCase.pdfAttachment && (
-            <button
-              onClick={() => onOpenPdf(incidentCase.pdfAttachment!.path, incidentCase.pdfAttachment!.title)}
-              className="my-1.5 flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold bg-[#45a29e]/20 hover:bg-[#66fcf1]/20 text-[#66fcf1] border border-[#66fcf1]/40 rounded transition-colors whitespace-nowrap shrink-0"
-              title="Open the official attached guide PDF"
-            >
-              <FileText className="w-3.5 h-3.5" />
-              <span>View Original PDF</span>
-              <ExternalLink className="w-3 h-3 ml-0.5" />
-            </button>
-          )}
         </div>
 
         {/* Content Body */}
@@ -165,28 +134,30 @@ export const CaseDetailModal: React.FC<CaseDetailModalProps> = ({
               </p>
             </div>
 
-            {/* Target Nodes row */}
-            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#45a29e]/20">
-              <span className="text-xs text-[#45a29e] flex items-center gap-1">
-                <Server className="w-3.5 h-3.5" />
-                Target Nodes:
-              </span>
-              {incidentCase.targetNodes.map((node, i) => (
-                <button
-                  key={i}
-                  onClick={() => copyToClipboard(node, `node-${i}`)}
-                  className="font-mono text-xs px-2 py-0.5 rounded bg-[#1f2833] text-[#66fcf1] border border-[#45a29e]/60 hover:border-[#66fcf1] flex items-center gap-1.5 transition-colors"
-                  title="Click to copy host/IP"
-                >
-                  <span>{node}</span>
-                  {copiedText === `node-${i}` ? (
-                    <Check className="w-3 h-3 text-[#66fcf1]" />
-                  ) : (
-                    <Copy className="w-3 h-3 opacity-60" />
-                  )}
-                </button>
-              ))}
-            </div>
+            {/* Target Nodes row (conditionally rendered if nodes exist) */}
+            {incidentCase.targetNodes && incidentCase.targetNodes.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#45a29e]/20">
+                <span className="text-xs text-[#45a29e] flex items-center gap-1">
+                  <Server className="w-3.5 h-3.5" />
+                  Target Nodes:
+                </span>
+                {incidentCase.targetNodes.map((node, i) => (
+                  <button
+                    key={i}
+                    onClick={() => copyToClipboard(node, `node-${i}`)}
+                    className="font-mono text-xs px-2 py-0.5 rounded bg-[#1f2833] text-[#66fcf1] border border-[#45a29e]/60 hover:border-[#66fcf1] flex items-center gap-1.5 transition-colors"
+                    title="Click to copy host/IP"
+                  >
+                    <span>{node}</span>
+                    {copiedText === `node-${i}` ? (
+                      <Check className="w-3 h-3 text-[#66fcf1]" />
+                    ) : (
+                      <Copy className="w-3 h-3 opacity-60" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Symptoms & Root Cause */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-[#45a29e]/20 text-xs">
@@ -347,49 +318,7 @@ export const CaseDetailModal: React.FC<CaseDetailModalProps> = ({
             </div>
           )}
 
-          {/* TAB 2: AUTOMATED SCRIPTS */}
-          {activeSubTab === 'scripts' && (
-            <div className="space-y-4">
-              <div className="text-xs text-[#c5c6c7]">
-                The following automated diagnostic and remediation scripts are certified for this case. You can execute them inside the embedded NOC Terminal Simulator.
-              </div>
-
-              {incidentCase.scripts.map((script) => (
-                <div key={script.id} className="bg-[#0b0c10] border border-[#45a29e] rounded p-4 space-y-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <div className="text-sm font-bold text-white flex items-center gap-2">
-                        <span>{script.name}</span>
-                        <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-[#1f2833] text-[#66fcf1] border border-[#45a29e]/50">
-                          {script.language}
-                        </span>
-                      </div>
-                      <p className="text-xs text-[#c5c6c7] mt-1">{script.description}</p>
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        onRunScript(script);
-                        onClose();
-                      }}
-                      className="px-3 py-1.5 bg-[#45a29e] hover:bg-[#66fcf1] text-[#0b0c10] font-bold rounded text-xs flex items-center gap-1.5 transition-colors shrink-0 shadow-sm"
-                    >
-                      <Terminal className="w-3.5 h-3.5" />
-                      <span>Execute Script</span>
-                    </button>
-                  </div>
-
-                  <div className="relative">
-                    <pre className="p-3 bg-[#141c24] border border-[#45a29e]/30 rounded text-xs font-mono text-[#66fcf1] max-h-48 overflow-y-auto">
-                      {script.code}
-                    </pre>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* TAB 3: ESCALATION MATRIX */}
+          {/* TAB 2: ESCALATION MATRIX */}
           {activeSubTab === 'escalation' && (
             <div className="space-y-4">
               <div className="bg-[#0b0c10] border border-[#45a29e]/50 rounded p-4 space-y-4">
@@ -400,7 +329,9 @@ export const CaseDetailModal: React.FC<CaseDetailModalProps> = ({
                   </h3>
                   <div className="text-xs text-[#f5a623] font-mono flex items-center gap-1">
                     <Clock className="w-3.5 h-3.5" />
-                    <span>Target Resolution SLA: {incidentCase.escalationPath.slaMins} mins</span>
+                    <span>
+                      Target Resolution SLA: {incidentCase.escalationPath.slaMins ? `${incidentCase.escalationPath.slaMins} mins` : 'Standard Tier Matrix'}
+                    </span>
                   </div>
                 </div>
 
@@ -419,19 +350,6 @@ export const CaseDetailModal: React.FC<CaseDetailModalProps> = ({
                     <div className="font-semibold text-[#ff4d4d]">Tier 3 Architecture &amp; Vendor Lead (30+ mins)</div>
                     <div className="text-white mt-0.5">{incidentCase.escalationPath.l3}</div>
                   </div>
-                </div>
-
-                <div className="pt-3 border-t border-[#45a29e]/30 flex justify-end">
-                  <button
-                    onClick={() => {
-                      onGenerateEscalation(incidentCase);
-                      onClose();
-                    }}
-                    className="px-4 py-2 bg-[#45a29e] hover:bg-[#66fcf1] text-[#0b0c10] font-bold text-xs rounded transition-colors flex items-center gap-2"
-                  >
-                    <AlertTriangle className="w-4 h-4" />
-                    <span>Generate Handover Ticket for this Case</span>
-                  </button>
                 </div>
               </div>
             </div>

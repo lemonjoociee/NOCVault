@@ -15,13 +15,7 @@ export interface User {
 
 export type SeverityLevel = 'P1 - Critical' | 'P2 - High' | 'P3 - Medium' | 'P4 - Low';
 
-export type CaseCategory = 
-  | 'Network & VPN' 
-  | 'ERP & Dynamics GP' 
-  | 'VoIP & Telecom' 
-  | 'API & Portals' 
-  | 'Database & ODBC' 
-  | 'Infrastructure';
+export type CaseCategory = string;
 
 export interface WorkflowStep {
   stepNumber: number;
@@ -51,16 +45,16 @@ export interface IncidentCase {
   category: CaseCategory;
   severity: SeverityLevel;
   summary: string;
-  targetNodes: string[];
+  targetNodes?: string[];
   symptoms: string[];
   rootCause?: string;
   workflowSteps: WorkflowStep[];
   scripts: AutomatedScript[];
   escalationPath: {
-    l1: string;
+    l1?: string;
     l2: string;
-    l3: string;
-    slaMins: number;
+    l3?: string;
+    slaMins?: number;
   };
   pdfAttachment?: {
     title: string;
@@ -83,3 +77,16 @@ export interface MemberInvitation {
   invitedAt: string;
   token: string;
 }
+
+export interface EscalationContact {
+  id: string;
+  tier: string;
+  role: string;
+  contact: string;
+  phone: string;
+  ext?: string;
+  coverage: string;
+  slaTarget: string;
+  duties: string[];
+}
+

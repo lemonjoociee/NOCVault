@@ -106,14 +106,18 @@ export const LoginView: React.FC<LoginViewProps> = ({ users, onLoginSuccess }) =
         <div className="bg-[#1f2833] border border-[#45a29e] rounded-lg p-6 sm:p-8 shadow-[0_0_25px_rgba(102,252,241,0.2)]">
           
           <div className="text-center mb-6">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-[#0b0c10] border border-[#66fcf1] text-[#66fcf1] mb-3 shadow-[0_0_12px_rgba(102,252,241,0.3)]">
-              <Shield className="w-6 h-6" />
+            <div className="flex items-center justify-center mb-4">
+              <img
+                src="/assets/aistudio/Scicom_MSC_Berhad_idpuWHQlKm_1_283b6397.png"
+                alt="SCICOM Logo"
+                className="h-12 sm:h-14 w-auto object-contain drop-shadow-[0_0_20px_rgba(102,252,241,0.25)]"
+              />
             </div>
             <h1 className="text-2xl font-bold text-[#66fcf1] tracking-wide uppercase font-mono">
               NOC Operations Portal
             </h1>
             <p className="text-xs sm:text-sm text-[#c5c6c7] mt-1">
-              Authenticate to access standard operating procedures, escalation matrices, and automated response scripts.
+              Authenticate to access standard operating procedures, troubleshooting workflows, and escalation matrices.
             </p>
           </div>
 
@@ -198,7 +202,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ users, onLoginSuccess }) =
                   </div>
 
                   <p className="text-[10px] text-[#c5c6c7]/80 mt-1.5 leading-snug">
-                    Can review guides, run scripts &amp; add cases for future reference.
+                    Can review guides &amp; add cases for future reference.
                   </p>
                 </div>
 

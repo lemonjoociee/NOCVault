@@ -4,20 +4,16 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { User, IncidentCase, AutomatedScript, UserRole, MemberInvitation } from './types';
+import { User, IncidentCase, UserRole, MemberInvitation } from './types';
 import { 
   getStoredUsers, 
-  saveUsers, 
   getStoredCases, 
-  saveCases, 
   addIncidentCase, 
-  getStoredScripts, 
   addMember, 
   updateMemberRole, 
   toggleMemberStatus, 
   deleteMember,
-  getStoredInvitations,
-  resetAllDataToDefault
+  getStoredInvitations
 } from './utils/storage';
 
 import { Navbar } from './components/Navbar';
@@ -25,12 +21,8 @@ import { LoginView } from './components/LoginView';
 import { KnowledgeBase } from './components/KnowledgeBase';
 import { CaseDetailModal } from './components/CaseDetailModal';
 import { AddCaseModal } from './components/AddCaseModal';
-import { ScriptRunner } from './components/ScriptRunner';
 import { EscalationMatrix } from './components/EscalationMatrix';
 import { AdminMemberManager } from './components/AdminMemberManager';
-import { GuidesView } from './components/GuidesView';
-import { PdfViewerModal } from './components/PdfViewerModal';
-import { RotateCcw } from 'lucide-react';
 
 export default function App() {
   // Authentication & Users: start with null so the user lands on the login page with both role credentials
@@ -39,18 +31,14 @@ export default function App() {
 
   // Data Collections
   const [cases, setCases] = useState<IncidentCase[]>(() => getStoredCases());
-  const [scripts, setScripts] = useState<AutomatedScript[]>(() => getStoredScripts());
   const [invitations, setInvitations] = useState<MemberInvitation[]>(() => getStoredInvitations());
 
-  // Active Tab View
-  const [activeTab, setActiveTab] = useState<'cases' | 'scripts' | 'escalations' | 'admin' | 'pdfs'>('cases');
+  // Active Tab View: SOPs, Escalations, Admin
+  const [activeTab, setActiveTab] = useState<'cases' | 'escalations' | 'admin'>('cases');
 
   // Modals & Active Selections
   const [selectedCaseForDetail, setSelectedCaseForDetail] = useState<IncidentCase | null>(null);
   const [isAddCaseOpen, setIsAddCaseOpen] = useState<boolean>(false);
-  const [activePdf, setActivePdf] = useState<{ path: string; title: string } | null>(null);
-  const [selectedScriptId, setSelectedScriptId] = useState<string | undefined>(undefined);
-  const [escalationInitialCase, setEscalationInitialCase] = useState<IncidentCase | null>(null);
 
   // Success toast message
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -102,45 +90,6 @@ export default function App() {
     const updated = deleteMember(userId);
     setUsers(updated);
     showToast('Member removed from roster.');
-  };
-
-  // Handler: Trigger Script from Case
-  const handleRunScriptFromCase = (script: AutomatedScript) => {
-    setSelectedScriptId(script.id);
-    setActiveTab('scripts');
-  };
-
-  // Handler: Trigger Escalation Ticket from Case
-  const handleGenerateEscalation = (incidentCase: IncidentCase) => {
-    setEscalationInitialCase(incidentCase);
-    setActiveTab('escalations');
-  };
-
-  // Handler: Open PDF Viewer
-  const handleOpenPdf = (pdfPath: string, title: string) => {
-    setActivePdf({ path: pdfPath, title });
-  };
-
-  // Handler: Jump to case by number from Guides view
-  const handleSelectCaseByNumber = (caseNum: string) => {
-    const found = cases.find(c => c.caseNumber === caseNum);
-    if (found) {
-      setSelectedCaseForDetail(found);
-    } else {
-      setActiveTab('cases');
-    }
-  };
-
-  // Reset to default data
-  const handleResetData = () => {
-    if (window.confirm('Reset all cases and members back to default initial state?')) {
-      resetAllDataToDefault();
-      setUsers(getStoredUsers());
-      setCases(getStoredCases());
-      setScripts(getStoredScripts());
-      setInvitations([]);
-      showToast('All cases, scripts, and member rosters reset to default.');
-    }
   };
 
   // If user is not authenticated, render LoginView
@@ -196,25 +145,13 @@ export default function App() {
           <div className="flex items-center gap-2">
             {currentUser.role === 'Admin' ? (
               <span className="text-[11px] text-[#66fcf1] bg-[#0b0c10] px-2 py-0.5 rounded border border-[#66fcf1]/40">
-                Admin Privileges: Full SOP Access + Add Member via Email
+                Admin Privileges: Full SOP Access + Manage Escalation Directory + Add Member via Email
               </span>
             ) : (
               <span className="text-[11px] text-[#45a29e] bg-[#0b0c10] px-2 py-0.5 rounded border border-[#45a29e]/40">
-                NOC Privileges: Review Guides &amp; Add Cases
+                NOC Privileges: Review Guides, View Escalations &amp; Add Cases
               </span>
             )}
-
-            {/* Account Switcher / Sign Out */}
-            <button
-              onClick={() => {
-                setCurrentUser(null);
-                showToast('Signed out. Please sign in with the credentials for your desired role.');
-              }}
-              className="px-2.5 py-1 rounded text-[11px] font-mono bg-[#0b0c10] hover:bg-[#141c24] text-[#c5c6c7] hover:text-[#66fcf1] border border-[#45a29e]/50 transition-colors"
-              title="Sign out and sign in as different role"
-            >
-              Switch Account
-            </button>
           </div>
         </div>
 
@@ -223,37 +160,16 @@ export default function App() {
           <KnowledgeBase
             cases={cases}
             onSelectCase={c => setSelectedCaseForDetail(c)}
-            onRunScript={s => handleRunScriptFromCase(s)}
-            onOpenPdf={(path, title) => handleOpenPdf(path, title)}
             onOpenAddCase={() => setIsAddCaseOpen(true)}
           />
         )}
 
-        {/* Tab 2: Automated Incident Response Scripts */}
-        {activeTab === 'scripts' && (
-          <ScriptRunner
-            scripts={scripts}
-            selectedScriptId={selectedScriptId}
-          />
-        )}
-
-        {/* Tab 3: Escalation Matrix & Handover */}
+        {/* Tab 2: Escalation Matrix & Directory (Admin can edit/add) */}
         {activeTab === 'escalations' && (
-          <EscalationMatrix
-            cases={cases}
-            initialSelectedCase={escalationInitialCase}
-          />
+          <EscalationMatrix currentUser={currentUser} />
         )}
 
-        {/* Tab 4: Original Technical PDF Guides */}
-        {activeTab === 'pdfs' && (
-          <GuidesView
-            onOpenPdf={(path, title) => handleOpenPdf(path, title)}
-            onSelectCaseByNumber={handleSelectCaseByNumber}
-          />
-        )}
-
-        {/* Tab 5: Admin & Member Management (Admin only) */}
+        {/* Tab 3: Admin & Member Management (Admin only) */}
         {activeTab === 'admin' && currentUser.role === 'Admin' && (
           <AdminMemberManager
             currentUser={currentUser}
@@ -273,9 +189,6 @@ export default function App() {
         <CaseDetailModal
           incidentCase={selectedCaseForDetail}
           onClose={() => setSelectedCaseForDetail(null)}
-          onRunScript={handleRunScriptFromCase}
-          onOpenPdf={handleOpenPdf}
-          onGenerateEscalation={handleGenerateEscalation}
         />
       )}
 
@@ -287,35 +200,10 @@ export default function App() {
         onCaseAdded={handleCaseAdded}
       />
 
-      {/* Embedded PDF Viewer Modal */}
-      <PdfViewerModal
-        isOpen={!!activePdf}
-        onClose={() => setActivePdf(null)}
-        pdfPath={activePdf?.path || null}
-        pdfTitle={activePdf?.title || null}
-      />
-
       {/* Footer */}
       <footer className="border-t border-[#45a29e]/30 bg-[#0b0c10] py-4 mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#45a29e]">
-          <div>
-            NOC Operational Guide · SCICOM (MSC) Berhad · Network Operations Center
-          </div>
-
-          <div className="flex items-center gap-4">
-            <button
-              onClick={handleResetData}
-              className="flex items-center gap-1 hover:text-[#ff4d4d] transition-colors"
-              title="Reset data back to initial seed"
-            >
-              <RotateCcw className="w-3 h-3" />
-              <span>Reset Data</span>
-            </button>
-            <span>·</span>
-            <span>Gateway 10.1.2.1</span>
-            <span>·</span>
-            <span>SolarWinds 10.1.27.165</span>
-          </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs text-[#45a29e]">
+          NOC Operational Guide · SCICOM (MSC) Berhad · Network Operations Center
         </div>
       </footer>
 

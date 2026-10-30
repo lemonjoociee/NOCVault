@@ -16,10 +16,9 @@ export const AddCaseModal: React.FC<AddCaseModalProps> = ({
   onCaseAdded
 }) => {
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState<CaseCategory>('Network & VPN');
+  const [category, setCategory] = useState('');
   const [severity, setSeverity] = useState<SeverityLevel>('P2 - High');
   const [summary, setSummary] = useState('');
-  const [targetNodes, setTargetNodes] = useState('');
   const [symptoms, setSymptoms] = useState('');
   const [rootCause, setRootCause] = useState('');
   const [tags, setTags] = useState('');
@@ -28,26 +27,20 @@ export const AddCaseModal: React.FC<AddCaseModalProps> = ({
   const [steps, setSteps] = useState<WorkflowStep[]>([
     {
       stepNumber: 1,
-      title: 'Initial Node Health & Interface Triage',
+      title: 'Initial Health & Interface Triage',
       instructions: [
-        'Connect to node management interface or run ICMP ping test.',
+        'Inspect operational interface or run connectivity checks.',
         'Review recent alert history in monitoring console.'
       ],
-      command: 'ping -c 4 <target_ip>',
+      command: 'ping -c 4 <host_or_ip>',
       credentials: []
     }
   ]);
-
-  // Optional script
-  const [scriptName, setScriptName] = useState('Node Quick Ping & Interface Audit');
-  const [scriptLang, setScriptLang] = useState<'bash' | 'powershell' | 'python' | 'batch'>('bash');
-  const [scriptCode, setScriptCode] = useState(`#!/bin/bash\n# Diagnostic script for incident triage\nping -c 4 10.11.4.28\nnslookup medical.emgs.com.my 10.1.2.1`);
 
   // Escalation info
   const [l1Escalation, setL1Escalation] = useState('Tier 1 NOC Shift Desk (Verification within 15 mins)');
   const [l2Escalation, setL2Escalation] = useState('Tier 2 Network / Systems Engineer (On-call phone alert)');
   const [l3Escalation, setL3Escalation] = useState('ICTA Infrastructure Lead & Vendor NOC');
-  const [slaMins, setSlaMins] = useState(30);
 
   if (!isOpen) return null;
 
@@ -93,12 +86,7 @@ export const AddCaseModal: React.FC<AddCaseModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !summary.trim()) return;
-
-    const parsedNodes = targetNodes
-      .split(',')
-      .map(n => n.trim())
-      .filter(Boolean);
+    if (!title.trim() || !summary.trim() || !category.trim()) return;
 
     const parsedSymptoms = symptoms
       .split('\n')
@@ -112,32 +100,20 @@ export const AddCaseModal: React.FC<AddCaseModalProps> = ({
 
     const rawCase = {
       title: title.trim(),
-      category,
+      category: category.trim(),
       severity,
       summary: summary.trim(),
-      targetNodes: parsedNodes.length > 0 ? parsedNodes : ['10.11.4.28'],
       symptoms: parsedSymptoms.length > 0 ? parsedSymptoms : ['Performance degradation reported on target service'],
       rootCause: rootCause.trim() || undefined,
       workflowSteps: steps.filter(s => s.title.trim().length > 0),
-      scripts: [
-        {
-          id: `script-${Date.now()}`,
-          name: scriptName || `${title} Diagnostic Probe`,
-          category,
-          language: scriptLang,
-          description: `Automated diagnostic routine for ${title}`,
-          code: scriptCode,
-          expectedOutput: `[*] Probing target nodes...\n[OK] Service responded within SLA threshold.\n[SUCCESS] Diagnostics completed.`
-        }
-      ],
+      scripts: [],
       escalationPath: {
         l1: l1Escalation,
         l2: l2Escalation,
-        l3: l3Escalation,
-        slaMins: Number(slaMins) || 30
+        l3: l3Escalation
       },
       author: `${currentUser.fullName} (${currentUser.role})`,
-      tags: parsedTags.length > 0 ? parsedTags : [category, 'Incident Response']
+      tags: parsedTags.length > 0 ? parsedTags : [category.trim(), 'Incident Response']
     };
 
     onCaseAdded(rawCase as any);
@@ -159,7 +135,7 @@ export const AddCaseModal: React.FC<AddCaseModalProps> = ({
                 Add New Troubleshooting Case
               </h2>
               <p className="text-xs text-[#c5c6c7]">
-                Record a verified operational workflow, diagnostic script, and escalation hierarchy for NOC team reference.
+                Record a verified operational workflow, troubleshooting steps, and escalation hierarchy for NOC team reference.
               </p>
             </div>
           </div>
@@ -208,37 +184,18 @@ export const AddCaseModal: React.FC<AddCaseModalProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[#66fcf1] font-semibold mb-1 uppercase tracking-wider">
-                Operational Category
-              </label>
-              <select
-                value={category}
-                onChange={e => setCategory(e.target.value as CaseCategory)}
-                className="w-full px-3 py-2 bg-[#0b0c10] border border-[#45a29e] rounded text-white focus:outline-none focus:border-[#66fcf1]"
-              >
-                <option value="Network & VPN">Network &amp; VPN</option>
-                <option value="ERP & Dynamics GP">ERP &amp; Dynamics GP</option>
-                <option value="VoIP & Telecom">VoIP &amp; Telecom</option>
-                <option value="API & Portals">API &amp; Portals</option>
-                <option value="Database & ODBC">Database &amp; ODBC</option>
-                <option value="Infrastructure">Infrastructure</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-[#66fcf1] font-semibold mb-1 uppercase tracking-wider">
-                Target Nodes / IPs (comma separated)
-              </label>
-              <input
-                type="text"
-                value={targetNodes}
-                onChange={e => setTargetNodes(e.target.value)}
-                placeholder="e.g. 10.11.4.28, 10.1.27.165, KL-FINDBS1-VM"
-                className="w-full px-3 py-2 bg-[#0b0c10] border border-[#45a29e] rounded text-white font-mono focus:outline-none focus:border-[#66fcf1]"
-              />
-            </div>
+          <div>
+            <label className="block text-[#66fcf1] font-semibold mb-1 uppercase tracking-wider">
+              Project Name *
+            </label>
+            <input
+              type="text"
+              required
+              value={category}
+              onChange={e => setCategory(e.target.value)}
+              placeholder="e.g. EMGS, Dynamics GP 2016, Cisco Core, Zoiper VoIP, Payment Gateway..."
+              className="w-full px-3 py-2 bg-[#0b0c10] border border-[#45a29e] rounded text-white focus:outline-none focus:border-[#66fcf1]"
+            />
           </div>
 
           {/* Summary */}
@@ -356,70 +313,23 @@ export const AddCaseModal: React.FC<AddCaseModalProps> = ({
             ))}
           </div>
 
-          {/* Automated Response Script */}
-          <div className="pt-2 border-t border-[#45a29e]/30 space-y-3">
-            <div className="text-[#66fcf1] font-bold uppercase tracking-wider text-xs">
-              Automated Diagnostic / Response Script
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <div className="sm:col-span-2">
-                <input
-                  type="text"
-                  value={scriptName}
-                  onChange={e => setScriptName(e.target.value)}
-                  placeholder="Script name..."
-                  className="w-full px-2.5 py-1.5 bg-[#0b0c10] border border-[#45a29e] rounded text-white text-xs focus:outline-none focus:border-[#66fcf1]"
-                />
-              </div>
-
-              <div>
-                <select
-                  value={scriptLang}
-                  onChange={e => setScriptLang(e.target.value as any)}
-                  className="w-full px-2.5 py-1.5 bg-[#0b0c10] border border-[#45a29e] rounded text-white text-xs focus:outline-none focus:border-[#66fcf1]"
-                >
-                  <option value="bash">Bash (.sh)</option>
-                  <option value="powershell">PowerShell (.ps1)</option>
-                  <option value="python">Python (.py)</option>
-                  <option value="batch">Windows Batch (.bat)</option>
-                </select>
-              </div>
-            </div>
-
-            <textarea
-              rows={3}
-              value={scriptCode}
-              onChange={e => setScriptCode(e.target.value)}
-              className="w-full p-2.5 bg-[#0b0c10] border border-[#45a29e] rounded text-[#66fcf1] font-mono text-xs focus:outline-none focus:border-[#66fcf1]"
-            />
-          </div>
-
           {/* Escalation Path */}
           <div className="pt-2 border-t border-[#45a29e]/30 space-y-2">
             <div className="text-[#66fcf1] font-bold uppercase tracking-wider text-xs">
               Escalation SLA &amp; Contacts
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
-              <div className="sm:col-span-1">
-                <label className="block text-[10px] text-[#45a29e] uppercase font-mono">SLA Minutes</label>
-                <input
-                  type="number"
-                  value={slaMins}
-                  onChange={e => setSlaMins(Number(e.target.value))}
-                  className="w-full px-2.5 py-1 bg-[#0b0c10] border border-[#45a29e] rounded text-white text-xs"
-                />
-              </div>
-              <div className="sm:col-span-3">
-                <label className="block text-[10px] text-[#45a29e] uppercase font-mono">Tier 2 Escalation Point</label>
-                <input
-                  type="text"
-                  value={l2Escalation}
-                  onChange={e => setL2Escalation(e.target.value)}
-                  className="w-full px-2.5 py-1 bg-[#0b0c10] border border-[#45a29e] rounded text-white text-xs"
-                />
-              </div>
+            <div>
+              <label className="block text-[10px] text-[#45a29e] uppercase font-mono mb-1">
+                Tier 2 Escalation Point / Contact
+              </label>
+              <input
+                type="text"
+                value={l2Escalation}
+                onChange={e => setL2Escalation(e.target.value)}
+                placeholder="e.g. Tier 2 Network / Systems Engineer (On-call phone alert)"
+                className="w-full px-2.5 py-1.5 bg-[#0b0c10] border border-[#45a29e] rounded text-white text-xs focus:outline-none focus:border-[#66fcf1]"
+              />
             </div>
           </div>
 

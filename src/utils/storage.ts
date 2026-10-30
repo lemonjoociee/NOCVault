@@ -1,10 +1,11 @@
-import { User, IncidentCase, AutomatedScript, MemberInvitation } from '../types';
-import { INITIAL_USERS, INITIAL_CASES, INITIAL_SCRIPTS } from '../data/initialData';
+import { User, IncidentCase, AutomatedScript, MemberInvitation, EscalationContact } from '../types';
+import { INITIAL_USERS, INITIAL_CASES, INITIAL_SCRIPTS, ESCALATION_TEAMS } from '../data/initialData';
 
 const USERS_STORAGE_KEY = 'noc_portal_users_v1';
 const CASES_STORAGE_KEY = 'noc_portal_cases_v1';
 const SCRIPTS_STORAGE_KEY = 'noc_portal_scripts_v1';
 const INVITES_STORAGE_KEY = 'noc_portal_invites_v1';
+const CONTACTS_STORAGE_KEY = 'noc_portal_escalation_contacts_v1';
 
 export function getStoredUsers(): User[] {
   try {
@@ -171,9 +172,53 @@ export function saveInvitations(invites: MemberInvitation[]): void {
   }
 }
 
-export function resetAllDataToDefault(): void {
-  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(INITIAL_USERS));
-  localStorage.setItem(CASES_STORAGE_KEY, JSON.stringify(INITIAL_CASES));
-  localStorage.setItem(SCRIPTS_STORAGE_KEY, JSON.stringify(INITIAL_SCRIPTS));
-  localStorage.removeItem(INVITES_STORAGE_KEY);
+export function getStoredContacts(): EscalationContact[] {
+  try {
+    const raw = localStorage.getItem(CONTACTS_STORAGE_KEY);
+    if (!raw) {
+      const seeded: EscalationContact[] = ESCALATION_TEAMS.map((t, idx) => ({
+        id: `contact-${idx + 1}`,
+        ...t
+      }));
+      localStorage.setItem(CONTACTS_STORAGE_KEY, JSON.stringify(seeded));
+      return seeded;
+    }
+    return JSON.parse(raw);
+  } catch (e) {
+    console.error('Failed to parse stored contacts:', e);
+    return ESCALATION_TEAMS.map((t, idx) => ({ id: `contact-${idx + 1}`, ...t }));
+  }
 }
+
+export function saveContacts(contacts: EscalationContact[]): void {
+  try {
+    localStorage.setItem(CONTACTS_STORAGE_KEY, JSON.stringify(contacts));
+  } catch (e) {
+    console.error('Failed to save contacts:', e);
+  }
+}
+
+export function addEscalationContact(contact: Omit<EscalationContact, 'id'>): EscalationContact {
+  const current = getStoredContacts();
+  const created: EscalationContact = {
+    ...contact,
+    id: `contact-${Date.now()}`
+  };
+  const updated = [...current, created];
+  saveContacts(updated);
+  return created;
+}
+
+export function updateEscalationContact(contact: EscalationContact): EscalationContact[] {
+  const current = getStoredContacts();
+  const updated = current.map(c => c.id === contact.id ? contact : c);
+  saveContacts(updated);
+  return updated;
+}
+
+export function deleteEscalationContact(contactId: string): EscalationContact[] {
+  const current = getStoredContacts().filter(c => c.id !== contactId);
+  saveContacts(current);
+  return current;
+}
+
