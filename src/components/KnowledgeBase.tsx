@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { IncidentCase, CaseCategory, SeverityLevel, AutomatedScript } from '../types';
+import { IncidentCase, SeverityLevel } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { 
   Search, 
@@ -20,33 +20,14 @@ interface KnowledgeBaseProps {
 export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
   cases,
   onSelectCase,
-  onOpenPdf,
   onOpenAddCase
 }) => {
   const { isDark } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedSeverity, setSelectedSeverity] = useState<string>('All');
-
-  const categories = useMemo(() => {
-    const base = [
-      'All',
-      'Dynamics GP',
-      'Zoiper VoIP',
-      'Network & VPN',
-      'EMGS Portal',
-      'Database & ODBC'
-    ];
-    const userCategories = cases.map(c => c.category).filter(Boolean);
-    return Array.from(new Set([...base, ...userCategories]));
-  }, [cases]);
 
   const filteredCases = useMemo(() => {
     return cases.filter(c => {
-      // Category filter
-      if (selectedCategory !== 'All' && c.category !== selectedCategory) {
-        return false;
-      }
       // Severity filter
       if (selectedSeverity !== 'All' && !c.severity.startsWith(selectedSeverity)) {
         return false;
@@ -57,14 +38,15 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
       const q = searchQuery.toLowerCase();
       const inTitle = c.title.toLowerCase().includes(q);
       const inId = c.caseNumber.toLowerCase().includes(q);
+      const inCategory = (c.category || '').toLowerCase().includes(q);
       const inSummary = c.summary.toLowerCase().includes(q);
       const inNodes = (c.targetNodes || []).some(n => n.toLowerCase().includes(q));
       const inSymptoms = c.symptoms.some(s => s.toLowerCase().includes(q));
       const inTags = c.tags.some(t => t.toLowerCase().includes(q));
 
-      return inTitle || inId || inSummary || inNodes || inSymptoms || inTags;
+      return inTitle || inId || inCategory || inSummary || inNodes || inSymptoms || inTags;
     });
-  }, [cases, searchQuery, selectedCategory, selectedSeverity]);
+  }, [cases, searchQuery, selectedSeverity]);
 
   const getSeverityBadge = (sev: SeverityLevel) => {
     if (sev.includes('P1')) {
@@ -106,7 +88,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
   return (
     <div className="space-y-6">
       
-      {/* Search & Filter Bar */}
+      {/* Search & Severity Filter Bar */}
       <div className={`border rounded-xl p-4 sm:p-5 transition-colors ${
         isDark 
           ? 'bg-[#1f2833] border-[#45a29e]/50 shadow-[0_0_15px_rgba(102,252,241,0.08)]' 
@@ -125,16 +107,26 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search by case ID, keyword, IP address (10.11.4.28), symptom, or tag..."
+              placeholder="Search by case ID, project, keyword, IP address (10.11.4.28), symptom, or tag..."
               className={`w-full pl-9 pr-3 py-2 rounded-lg text-sm transition-colors focus:outline-none ${
                 isDark 
                   ? 'bg-[#0b0c10] border border-[#45a29e] text-white placeholder-[#c5c6c7]/50 focus:border-[#66fcf1]' 
                   : 'bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 focus:border-sky-500 focus:bg-white'
               }`}
             />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className={`absolute right-2.5 top-1/2 -translate-y-1/2 text-xs p-1 ${
+                  isDark ? 'text-[#c5c6c7] hover:text-white' : 'text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                ✕
+              </button>
+            )}
           </div>
 
-          {/* Severity Dropdown */}
+          {/* Severity Dropdown & Add Case CTA */}
           <div className="flex items-center gap-2 shrink-0">
             <span className={`text-xs font-semibold flex items-center gap-1 ${
               isDark ? 'text-[#45a29e]' : 'text-slate-600'
@@ -171,34 +163,6 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
             </button>
           </div>
         </div>
-
-        {/* Project Name Filter Pills */}
-        <div className={`flex items-center gap-1.5 mt-3 pt-3 border-t overflow-x-auto pb-1 ${
-          isDark ? 'border-[#45a29e]/20' : 'border-slate-200'
-        }`}>
-          <span className={`text-[11px] font-semibold uppercase tracking-wider shrink-0 mr-1 font-mono ${
-            isDark ? 'text-[#45a29e]' : 'text-slate-500'
-          }`}>
-            Project:
-          </span>
-          {categories.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
-                selectedCategory === cat
-                  ? isDark 
-                    ? 'bg-[#66fcf1] text-[#0b0c10] font-bold shadow-sm'
-                    : 'bg-sky-600 text-white font-bold shadow-sm'
-                  : isDark 
-                    ? 'bg-[#0b0c10] text-[#c5c6c7] hover:text-white border border-[#45a29e]/40'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* Case Count and Status Bar */}
@@ -207,7 +171,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
       }`}>
         <div>
           Showing <span className={`font-bold ${isDark ? 'text-[#66fcf1]' : 'text-sky-700'}`}>{filteredCases.length}</span> documented NOC operational procedures
-          {selectedCategory !== 'All' && <span> for Project: <strong className={isDark ? 'text-white' : 'text-slate-900'}>{selectedCategory}</strong></span>}
+          {selectedSeverity !== 'All' && <span> (Severity: <strong className={isDark ? 'text-white' : 'text-slate-900'}>{selectedSeverity}</strong>)</span>}
         </div>
         <div className={`text-[11px] hidden sm:block ${isDark ? 'text-[#45a29e]' : 'text-slate-500'}`}>
           All workflows verified against SCICOM operational standards
@@ -339,20 +303,19 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
           </div>
           <h3 className={`text-base font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>No Matching Incidents Found</h3>
           <p className={`text-xs max-w-md mx-auto ${isDark ? 'text-[#c5c6c7]' : 'text-slate-600'}`}>
-            No standard operating procedures matched &quot;{searchQuery}&quot; under project &quot;{selectedCategory}&quot;.
+            No standard operating procedures matched &quot;{searchQuery}&quot;.
           </p>
           <div className="pt-2 flex justify-center gap-3">
             <button
               onClick={() => {
                 setSearchQuery('');
-                setSelectedCategory('All');
                 setSelectedSeverity('All');
               }}
               className={`px-3 py-1.5 rounded-lg text-xs font-mono border ${
                 isDark ? 'bg-[#0b0c10] text-[#66fcf1] border-[#45a29e]' : 'bg-slate-100 text-slate-700 border-slate-300'
               }`}
             >
-              Clear Filters
+              Clear Search
             </button>
             <button
               onClick={onOpenAddCase}
