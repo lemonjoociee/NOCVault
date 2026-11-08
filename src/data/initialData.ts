@@ -1,4 +1,4 @@
-import { IncidentCase, User, AutomatedScript } from '../types';
+import { IncidentCase, User, AutomatedScript, EscalationGuideRow } from '../types';
 
 export const INITIAL_USERS: User[] = [
   {
@@ -731,5 +731,196 @@ export const ESCALATION_TEAMS = [
     coverage: '24/7 For P1/P2 Major Incidents',
     slaTarget: 'Immediate notification within 15 mins for P1',
     duties: ['Customer communication broadcast', 'Bridge call coordination', 'RCA sign-off']
+  }
+];
+
+export const INITIAL_ESCALATION_GUIDE_ROWS: EscalationGuideRow[] = [
+  {
+    id: 'esc-guide-1',
+    no: 1,
+    application: 'SES',
+    issues: [
+      'Reset password',
+      'Unlocked ID',
+      'Update email user',
+      'Manage category and issue ticket',
+      'ID Deactivation',
+      'ID Creation',
+      'Reassign ticket',
+      'Assign group'
+    ],
+    mayEscalateTo: 'Helpdesk'
+  },
+  {
+    id: 'esc-guide-2',
+    no: 1,
+    application: 'SES',
+    issues: [
+      'IR Incident Report',
+      'CR submission/request'
+    ],
+    mayEscalateTo: 'Helpdesk (Subash)'
+  },
+  {
+    id: 'esc-guide-3',
+    no: 1,
+    application: 'SES',
+    issues: [
+      'Movement furniture',
+      'Workstation',
+      'Maintenance',
+      'Door, Pedestal, Chair, Lockers',
+      'Washroom',
+      'TV movement'
+    ],
+    mayEscalateTo: 'Facilities (Don)',
+    remarks: 'Connection TV - NOC'
+  },
+  {
+    id: 'esc-guide-4',
+    no: 1,
+    application: 'SES',
+    issues: [
+      'Carpet',
+      'Access Pass',
+      'Cyberjaya Facility'
+    ],
+    mayEscalateTo: 'Facilities (Khairul)'
+  },
+  {
+    id: 'esc-guide-5',
+    no: 1,
+    application: 'SES',
+    issues: [
+      'Leaking',
+      'Electric'
+    ],
+    mayEscalateTo: 'Facilities (Faiz)'
+  },
+  {
+    id: 'esc-guide-6',
+    no: 1,
+    application: 'SES',
+    issues: [
+      'Aircond'
+    ],
+    mayEscalateTo: 'Facilities (Vinesh)'
+  },
+  {
+    id: 'esc-guide-7',
+    no: 1,
+    application: 'SES',
+    issues: [
+      'Leave balance',
+      'Agent leave',
+      'Provide access SES',
+      'SES ID missing in SES list',
+      'Unable submit leave',
+      'Unable to create any ticket',
+      'Unable to approve or reject SES ticket'
+    ],
+    mayEscalateTo: 'CRM (Syahril/Thiana)'
+  },
+  {
+    id: 'esc-guide-8',
+    no: 1,
+    application: 'SES',
+    issues: [
+      'New Machine Request (Laptop)',
+      'Request Monitor, Headset, Microphone, Softphone',
+      'Software, Unable to Reboots, Slow',
+      'Unable to connect VPN (for Lenovo laptop)',
+      'Any Installation',
+      'Anything related to Lenovo issue (request too)'
+    ],
+    mayEscalateTo: 'ICTO (Nivash/Asaboro)'
+  },
+  {
+    id: 'esc-guide-9',
+    no: 2,
+    application: 'SLC Course',
+    issues: [
+      'Page stuck',
+      'Unable to click next page',
+      'Any related to SLC'
+    ],
+    mayEscalateTo: 'CRM (Sree)'
+  },
+  {
+    id: 'esc-guide-10',
+    no: 3,
+    application: 'VPN',
+    issues: [
+      'ID Creation',
+      'ID Deactivation',
+      'DUO account',
+      'VPN license',
+      'VPN connection',
+      'Reset password'
+    ],
+    mayEscalateTo: 'ICTS (Deegayu)',
+    secondEscalation: 'ICTS (Khalid)'
+  },
+  {
+    id: 'esc-guide-11',
+    no: 4,
+    application: 'Zimbra/ Email',
+    issues: [
+      'ID Creation',
+      'ID Deactivation',
+      'Reset password',
+      'Email Group',
+      'Forwarding',
+      'Microsoft License Issue',
+      'Mailing Group'
+    ],
+    mayEscalateTo: 'Helpdesk'
+  },
+  {
+    id: 'esc-guide-12',
+    no: 4,
+    application: 'Zimbra/ Email',
+    issues: [
+      'Email not sending'
+    ],
+    mayEscalateTo: 'Helpdesk',
+    secondEscalation: 'ICTA',
+    remarks: 'Need to check internet connection issue first'
+  },
+  {
+    id: 'esc-guide-13',
+    no: 4,
+    application: 'Zimbra/ Email',
+    issues: [
+      'Email not received'
+    ],
+    mayEscalateTo: 'Helpdesk',
+    secondEscalation: 'ICTA',
+    remarks: 'Need to check internet connection issue first'
+  },
+  {
+    id: 'esc-guide-14',
+    no: 4,
+    application: 'Zimbra/ Email',
+    issues: [
+      'Storage email'
+    ],
+    mayEscalateTo: 'Helpdesk',
+    remarks: 'If storage full and need to do archive only, must advise to clear unused email'
+  },
+  {
+    id: 'esc-guide-15',
+    no: 5,
+    application: 'Entra (Scitm email) / Nubitel ID / Calabrio',
+    issues: [
+      'ID Creation',
+      'ID Deactivation',
+      'Reset password',
+      'Campaign to assign',
+      'Assign license'
+    ],
+    mayEscalateTo: 'Helpdesk (Fatin/Ain)',
+    secondEscalation: 'NOC TM',
+    remarks: 'If still cannot login , please ask NOC TM to check from their end too'
   }
 ];

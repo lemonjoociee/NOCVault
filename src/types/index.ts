@@ -93,3 +93,13 @@ export interface EscalationContact {
   duties: string[];
 }
 
+export interface EscalationGuideRow {
+  id: string;
+  no: number;
+  application: string;
+  issues: string[];
+  mayEscalateTo: string;
+  secondEscalation?: string;
+  remarks?: string;
+}
+

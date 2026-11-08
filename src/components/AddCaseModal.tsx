@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { CaseCategory, IncidentCase, SeverityLevel, User, WorkflowStep } from '../types';
+import { useTheme } from '../context/ThemeContext';
 import { X, Plus, Trash2, ShieldCheck } from 'lucide-react';
 
 interface AddCaseModalProps {
@@ -15,6 +16,8 @@ export const AddCaseModal: React.FC<AddCaseModalProps> = ({
   onClose,
   onCaseAdded
 }) => {
+  const { isDark } = useTheme();
+
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
   const [severity, setSeverity] = useState<SeverityLevel>('P2 - High');
@@ -122,19 +125,27 @@ export const AddCaseModal: React.FC<AddCaseModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-sm overflow-y-auto">
-      <div className="relative w-full max-w-3xl bg-[#1f2833] border border-[#45a29e] rounded-lg shadow-[0_0_30px_rgba(102,252,241,0.25)] flex flex-col max-h-[92vh] overflow-hidden my-auto">
+      <div className={`relative w-full max-w-3xl border rounded-2xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden my-auto transition-colors ${
+        isDark ? 'bg-[#1f2833] border-[#45a29e]' : 'bg-white border-slate-300'
+      }`}>
         
         {/* Header */}
-        <div className="p-4 sm:p-6 border-b border-[#45a29e]/40 bg-[#0b0c10] flex items-center justify-between">
+        <div className={`p-4 sm:p-6 border-b flex items-center justify-between ${
+          isDark ? 'bg-[#0b0c10] border-[#45a29e]/40' : 'bg-slate-50 border-slate-200'
+        }`}>
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded bg-[#1f2833] border border-[#66fcf1] flex items-center justify-center text-[#66fcf1]">
+            <div className={`w-8 h-8 rounded-lg border flex items-center justify-center ${
+              isDark ? 'bg-[#1f2833] border-[#66fcf1] text-[#66fcf1]' : 'bg-sky-100 border-sky-300 text-sky-700'
+            }`}>
               <ShieldCheck className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-[#66fcf1] tracking-wide uppercase font-mono">
+              <h2 className={`text-base sm:text-lg font-bold tracking-wide uppercase font-mono ${
+                isDark ? 'text-[#66fcf1]' : 'text-slate-900'
+              }`}>
                 Add New Troubleshooting Case
               </h2>
-              <p className="text-xs text-[#c5c6c7]">
+              <p className={`text-xs ${isDark ? 'text-[#c5c6c7]' : 'text-slate-500'}`}>
                 Record a verified operational workflow, troubleshooting steps, and escalation hierarchy for NOC team reference.
               </p>
             </div>
@@ -142,19 +153,25 @@ export const AddCaseModal: React.FC<AddCaseModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-1.5 text-[#c5c6c7] hover:text-[#66fcf1] rounded bg-[#1f2833] border border-[#45a29e]/50"
+            className={`p-1.5 rounded-lg border transition-colors ${
+              isDark ? 'text-[#c5c6c7] hover:text-[#66fcf1] bg-[#1f2833] border-[#45a29e]/50' : 'text-slate-500 hover:text-slate-800 bg-white border-slate-300'
+            }`}
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 overflow-y-auto space-y-5 text-xs text-[#c5c6c7]">
+        <form onSubmit={handleSubmit} className={`p-4 sm:p-6 overflow-y-auto space-y-5 text-xs ${
+          isDark ? 'text-[#c5c6c7]' : 'text-slate-700'
+        }`}>
           
           {/* General Metadata */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="sm:col-span-2">
-              <label className="block text-[#66fcf1] font-semibold mb-1 uppercase tracking-wider">
+              <label className={`block font-semibold mb-1 uppercase tracking-wider font-mono ${
+                isDark ? 'text-[#66fcf1]' : 'text-slate-700'
+              }`}>
                 Case Title *
               </label>
               <input
@@ -163,18 +180,24 @@ export const AddCaseModal: React.FC<AddCaseModalProps> = ({
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 placeholder="e.g. Cisco Core Switch Link Flap & BGP Route Recovery"
-                className="w-full px-3 py-2 bg-[#0b0c10] border border-[#45a29e] rounded text-white focus:outline-none focus:border-[#66fcf1]"
+                className={`w-full px-3 py-2 rounded-lg text-xs focus:outline-none ${
+                  isDark ? 'bg-[#0b0c10] border border-[#45a29e] text-white focus:border-[#66fcf1]' : 'bg-slate-50 border border-slate-300 text-slate-900 focus:border-sky-500 focus:bg-white'
+                }`}
               />
             </div>
 
             <div>
-              <label className="block text-[#66fcf1] font-semibold mb-1 uppercase tracking-wider">
+              <label className={`block font-semibold mb-1 uppercase tracking-wider font-mono ${
+                isDark ? 'text-[#66fcf1]' : 'text-slate-700'
+              }`}>
                 Severity Level
               </label>
               <select
                 value={severity}
                 onChange={e => setSeverity(e.target.value as SeverityLevel)}
-                className="w-full px-3 py-2 bg-[#0b0c10] border border-[#45a29e] rounded text-white focus:outline-none focus:border-[#66fcf1]"
+                className={`w-full px-3 py-2 rounded-lg text-xs font-mono focus:outline-none ${
+                  isDark ? 'bg-[#0b0c10] border border-[#45a29e] text-white focus:border-[#66fcf1]' : 'bg-slate-50 border border-slate-300 text-slate-900 focus:border-sky-500'
+                }`}
               >
                 <option value="P1 - Critical">P1 - Critical Outage</option>
                 <option value="P2 - High">P2 - High Severity</option>
@@ -185,7 +208,9 @@ export const AddCaseModal: React.FC<AddCaseModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-[#66fcf1] font-semibold mb-1 uppercase tracking-wider">
+            <label className={`block font-semibold mb-1 uppercase tracking-wider font-mono ${
+              isDark ? 'text-[#66fcf1]' : 'text-slate-700'
+            }`}>
               Project Name *
             </label>
             <input
@@ -194,13 +219,17 @@ export const AddCaseModal: React.FC<AddCaseModalProps> = ({
               value={category}
               onChange={e => setCategory(e.target.value)}
               placeholder="e.g. EMGS, Dynamics GP 2016, Cisco Core, Zoiper VoIP, Payment Gateway..."
-              className="w-full px-3 py-2 bg-[#0b0c10] border border-[#45a29e] rounded text-white focus:outline-none focus:border-[#66fcf1]"
+              className={`w-full px-3 py-2 rounded-lg text-xs focus:outline-none ${
+                isDark ? 'bg-[#0b0c10] border border-[#45a29e] text-white focus:border-[#66fcf1]' : 'bg-slate-50 border border-slate-300 text-slate-900 focus:border-sky-500 focus:bg-white'
+              }`}
             />
           </div>
 
           {/* Summary */}
           <div>
-            <label className="block text-[#66fcf1] font-semibold mb-1 uppercase tracking-wider">
+            <label className={`block font-semibold mb-1 uppercase tracking-wider font-mono ${
+              isDark ? 'text-[#66fcf1]' : 'text-slate-700'
+            }`}>
               Executive Incident Summary *
             </label>
             <textarea
@@ -209,14 +238,16 @@ export const AddCaseModal: React.FC<AddCaseModalProps> = ({
               value={summary}
               onChange={e => setSummary(e.target.value)}
               placeholder="High-level overview of the issue, affected services, and expected resolution..."
-              className="w-full px-3 py-2 bg-[#0b0c10] border border-[#45a29e] rounded text-white focus:outline-none focus:border-[#66fcf1]"
+              className={`w-full px-3 py-2 rounded-lg text-xs focus:outline-none ${
+                isDark ? 'bg-[#0b0c10] border border-[#45a29e] text-white focus:border-[#66fcf1]' : 'bg-slate-50 border border-slate-300 text-slate-900 focus:border-sky-500 focus:bg-white'
+              }`}
             />
           </div>
 
           {/* Symptoms & Root cause */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-[#ff4d4d] font-semibold mb-1 uppercase tracking-wider">
+              <label className="block text-red-500 font-semibold mb-1 uppercase tracking-wider font-mono">
                 Reported Symptoms (one per line)
               </label>
               <textarea
@@ -224,12 +255,14 @@ export const AddCaseModal: React.FC<AddCaseModalProps> = ({
                 value={symptoms}
                 onChange={e => setSymptoms(e.target.value)}
                 placeholder="Users unable to sign in&#10;SolarWinds reports node unreachable&#10;HTTP 504 Gateway Timeout"
-                className="w-full px-3 py-2 bg-[#0b0c10] border border-[#45a29e] rounded text-white font-mono text-xs focus:outline-none focus:border-[#66fcf1]"
+                className={`w-full px-3 py-2 rounded-lg font-mono text-xs focus:outline-none ${
+                  isDark ? 'bg-[#0b0c10] border border-[#45a29e] text-white focus:border-[#66fcf1]' : 'bg-slate-50 border border-slate-300 text-slate-900 focus:border-sky-500'
+                }`}
               />
             </div>
 
             <div>
-              <label className="block text-[#f5a623] font-semibold mb-1 uppercase tracking-wider">
+              <label className="block text-amber-500 font-semibold mb-1 uppercase tracking-wider font-mono">
                 Root Cause Analysis (RCA)
               </label>
               <textarea
@@ -237,19 +270,23 @@ export const AddCaseModal: React.FC<AddCaseModalProps> = ({
                 value={rootCause}
                 onChange={e => setRootCause(e.target.value)}
                 placeholder="Identified underlying issue (e.g. IPsec phase 2 renegotiation timeout, DNS cache corruption)..."
-                className="w-full px-3 py-2 bg-[#0b0c10] border border-[#45a29e] rounded text-white focus:outline-none focus:border-[#66fcf1]"
+                className={`w-full px-3 py-2 rounded-lg text-xs focus:outline-none ${
+                  isDark ? 'bg-[#0b0c10] border border-[#45a29e] text-white focus:border-[#66fcf1]' : 'bg-slate-50 border border-slate-300 text-slate-900 focus:border-sky-500'
+                }`}
               />
             </div>
           </div>
 
           {/* Dynamic Workflow Steps */}
-          <div className="pt-2 border-t border-[#45a29e]/30 space-y-3">
+          <div className={`pt-2 border-t space-y-3 ${isDark ? 'border-[#45a29e]/30' : 'border-slate-200'}`}>
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-[#66fcf1] font-bold uppercase tracking-wider text-xs">
+                <span className={`font-bold uppercase tracking-wider text-xs font-mono ${
+                  isDark ? 'text-[#66fcf1]' : 'text-sky-700'
+                }`}>
                   Troubleshooting Steps (SOP Checklist)
                 </span>
-                <p className="text-[11px] text-[#c5c6c7]/80">
+                <p className={`text-[11px] ${isDark ? 'text-[#c5c6c7]/80' : 'text-slate-500'}`}>
                   Sequential instructions for the operator during triage
                 </p>
               </div>
@@ -257,7 +294,11 @@ export const AddCaseModal: React.FC<AddCaseModalProps> = ({
               <button
                 type="button"
                 onClick={handleAddStep}
-                className="flex items-center gap-1 px-2.5 py-1 bg-[#45a29e]/30 hover:bg-[#45a29e] text-[#66fcf1] hover:text-[#0b0c10] rounded border border-[#45a29e] transition-colors"
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-mono font-medium border transition-colors ${
+                  isDark 
+                    ? 'bg-[#45a29e]/30 hover:bg-[#45a29e] text-[#66fcf1] hover:text-[#0b0c10] border-[#45a29e]' 
+                    : 'bg-sky-50 hover:bg-sky-100 text-sky-700 border-sky-300'
+                }`}
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add Step</span>
@@ -265,24 +306,30 @@ export const AddCaseModal: React.FC<AddCaseModalProps> = ({
             </div>
 
             {steps.map((step, idx) => (
-              <div key={idx} className="p-3 bg-[#0b0c10] border border-[#45a29e]/50 rounded space-y-2 relative">
+              <div key={idx} className={`p-3 rounded-xl border space-y-2 relative ${
+                isDark ? 'bg-[#0b0c10] border-[#45a29e]/50' : 'bg-slate-50 border-slate-200'
+              }`}>
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 flex-1">
-                    <span className="font-mono text-[#66fcf1] font-bold">Step {step.stepNumber}:</span>
+                    <span className={`font-mono font-bold ${isDark ? 'text-[#66fcf1]' : 'text-sky-700'}`}>
+                      Step {step.stepNumber}:
+                    </span>
                     <input
                       type="text"
                       required
                       value={step.title}
                       onChange={e => handleStepTitleChange(idx, e.target.value)}
                       placeholder="e.g. Verify Core Gateway Status in SolarWinds"
-                      className="flex-1 px-2.5 py-1 bg-[#1f2833] border border-[#45a29e]/50 rounded text-white text-xs focus:outline-none focus:border-[#66fcf1]"
+                      className={`flex-1 px-2.5 py-1 rounded-lg text-xs focus:outline-none ${
+                        isDark ? 'bg-[#1f2833] border border-[#45a29e]/50 text-white focus:border-[#66fcf1]' : 'bg-white border border-slate-300 text-slate-900 focus:border-sky-500'
+                      }`}
                     />
                   </div>
                   {steps.length > 1 && (
                     <button
                       type="button"
                       onClick={() => handleRemoveStep(idx)}
-                      className="p-1 text-[#ff4d4d] hover:bg-[#ff4d4d]/20 rounded"
+                      className="p-1 text-red-500 hover:bg-red-500/20 rounded cursor-pointer"
                       title="Remove step"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -296,7 +343,9 @@ export const AddCaseModal: React.FC<AddCaseModalProps> = ({
                     value={step.instructions.join('\n')}
                     onChange={e => handleStepInstructionChange(idx, e.target.value)}
                     placeholder="Instructions for this step (one bullet per line)..."
-                    className="w-full px-2.5 py-1.5 bg-[#141c24] border border-[#45a29e]/30 rounded text-white text-xs focus:outline-none focus:border-[#66fcf1]"
+                    className={`w-full px-2.5 py-1.5 rounded-lg text-xs focus:outline-none ${
+                      isDark ? 'bg-[#141c24] border border-[#45a29e]/30 text-white focus:border-[#66fcf1]' : 'bg-white border border-slate-300 text-slate-900 focus:border-sky-500'
+                    }`}
                   />
                 </div>
 
@@ -306,7 +355,9 @@ export const AddCaseModal: React.FC<AddCaseModalProps> = ({
                     value={step.command || ''}
                     onChange={e => handleStepCommandChange(idx, e.target.value)}
                     placeholder="Command to run (e.g. ping -c 4 10.11.4.28 or nslookup ...)"
-                    className="w-full px-2.5 py-1 bg-[#141c24] border border-[#45a29e]/30 rounded text-[#66fcf1] font-mono text-xs focus:outline-none focus:border-[#66fcf1]"
+                    className={`w-full px-2.5 py-1 rounded-lg font-mono text-xs focus:outline-none ${
+                      isDark ? 'bg-[#141c24] border border-[#45a29e]/30 text-[#66fcf1] focus:border-[#66fcf1]' : 'bg-slate-900 text-sky-300 border border-slate-700'
+                    }`}
                   />
                 </div>
               </div>
@@ -314,13 +365,17 @@ export const AddCaseModal: React.FC<AddCaseModalProps> = ({
           </div>
 
           {/* Escalation Path */}
-          <div className="pt-2 border-t border-[#45a29e]/30 space-y-2">
-            <div className="text-[#66fcf1] font-bold uppercase tracking-wider text-xs">
+          <div className={`pt-2 border-t space-y-2 ${isDark ? 'border-[#45a29e]/30' : 'border-slate-200'}`}>
+            <div className={`font-bold uppercase tracking-wider text-xs font-mono ${
+              isDark ? 'text-[#66fcf1]' : 'text-slate-800'
+            }`}>
               Escalation SLA &amp; Contacts
             </div>
 
             <div>
-              <label className="block text-[10px] text-[#45a29e] uppercase font-mono mb-1">
+              <label className={`block text-[10px] uppercase font-mono mb-1 ${
+                isDark ? 'text-[#45a29e]' : 'text-slate-500'
+              }`}>
                 Tier 2 Escalation Point / Contact
               </label>
               <input
@@ -328,14 +383,18 @@ export const AddCaseModal: React.FC<AddCaseModalProps> = ({
                 value={l2Escalation}
                 onChange={e => setL2Escalation(e.target.value)}
                 placeholder="e.g. Tier 2 Network / Systems Engineer (On-call phone alert)"
-                className="w-full px-2.5 py-1.5 bg-[#0b0c10] border border-[#45a29e] rounded text-white text-xs focus:outline-none focus:border-[#66fcf1]"
+                className={`w-full px-2.5 py-1.5 rounded-lg text-xs focus:outline-none ${
+                  isDark ? 'bg-[#0b0c10] border border-[#45a29e] text-white focus:border-[#66fcf1]' : 'bg-slate-50 border border-slate-300 text-slate-900 focus:border-sky-500'
+                }`}
               />
             </div>
           </div>
 
           {/* Tags */}
           <div>
-            <label className="block text-[10px] text-[#45a29e] uppercase font-mono mb-1">
+            <label className={`block text-[10px] uppercase font-mono mb-1 ${
+              isDark ? 'text-[#45a29e]' : 'text-slate-500'
+            }`}>
               Search Tags (comma separated)
             </label>
             <input
@@ -343,22 +402,30 @@ export const AddCaseModal: React.FC<AddCaseModalProps> = ({
               value={tags}
               onChange={e => setTags(e.target.value)}
               placeholder="e.g. Cisco, VPN, EMGS, Outage, BGP"
-              className="w-full px-2.5 py-1.5 bg-[#0b0c10] border border-[#45a29e] rounded text-white text-xs font-mono"
+              className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-mono ${
+                isDark ? 'bg-[#0b0c10] border border-[#45a29e] text-white' : 'bg-slate-50 border border-slate-300 text-slate-900'
+              }`}
             />
           </div>
 
           {/* Submit buttons */}
-          <div className="pt-4 border-t border-[#45a29e]/40 flex items-center justify-end gap-3">
+          <div className={`pt-4 border-t flex items-center justify-end gap-3 ${
+            isDark ? 'border-[#45a29e]/40' : 'border-slate-200'
+          }`}>
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-[#141c24] hover:bg-[#0b0c10] text-[#c5c6c7] rounded text-xs border border-[#45a29e]/50 transition-colors"
+              className={`px-4 py-2 rounded-lg text-xs border transition-colors ${
+                isDark ? 'bg-[#141c24] hover:bg-[#0b0c10] text-[#c5c6c7] border-[#45a29e]/50' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
+              }`}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-5 py-2 bg-[#45a29e] hover:bg-[#66fcf1] text-[#0b0c10] font-bold rounded text-xs transition-colors shadow-[0_0_15px_rgba(69,162,158,0.3)]"
+              className={`px-5 py-2 font-bold rounded-lg text-xs transition-colors shadow-sm ${
+                isDark ? 'bg-[#45a29e] hover:bg-[#66fcf1] text-[#0b0c10]' : 'bg-teal-600 hover:bg-teal-700 text-white'
+              }`}
             >
               Publish SOP Case to Portal
             </button>

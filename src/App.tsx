@@ -17,6 +17,7 @@ import {
   updateUserProfile
 } from './utils/storage';
 
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { Navbar } from './components/Navbar';
 import { LoginView } from './components/LoginView';
 import { KnowledgeBase } from './components/KnowledgeBase';
@@ -26,8 +27,10 @@ import { EscalationMatrix } from './components/EscalationMatrix';
 import { AdminMemberManager } from './components/AdminMemberManager';
 import { ProfileModal } from './components/ProfileModal';
 
-export default function App() {
-  // Authentication & Users: start with null so the user lands on the login page with both role credentials
+function AppContent() {
+  const { isDark } = useTheme();
+
+  // Authentication & Users
   const [users, setUsers] = useState<User[]>(() => getStoredUsers());
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
@@ -35,7 +38,7 @@ export default function App() {
   const [cases, setCases] = useState<IncidentCase[]>(() => getStoredCases());
   const [invitations, setInvitations] = useState<MemberInvitation[]>(() => getStoredInvitations());
 
-  // Active Tab View: SOPs, Escalations, Admin
+  // Active Tab View: cases, escalations, admin
   const [activeTab, setActiveTab] = useState<'cases' | 'escalations' | 'admin'>('cases');
 
   // Modals & Active Selections
@@ -119,7 +122,11 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0b0c10] text-[#c5c6c7] flex flex-col font-sans selection:bg-[#66fcf1] selection:text-[#0b0c10]">
+    <div className={`min-h-screen flex flex-col font-sans transition-colors ${
+      isDark 
+        ? 'bg-[#0b0c10] text-[#c5c6c7] selection:bg-[#66fcf1] selection:text-[#0b0c10]' 
+        : 'bg-slate-100 text-slate-800 selection:bg-sky-200 selection:text-sky-900'
+    }`}>
       
       {/* Top Navbar */}
       <Navbar
@@ -136,9 +143,13 @@ export default function App() {
 
       {/* Floating Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-50 p-3.5 bg-[#1f2833] border border-[#66fcf1] text-[#66fcf1] rounded-lg shadow-[0_0_20px_rgba(102,252,241,0.3)] text-xs font-mono max-w-md animate-fade-in flex items-center justify-between gap-3">
+        <div className={`fixed bottom-5 right-5 z-50 p-3.5 rounded-xl border shadow-2xl text-xs font-mono max-w-md animate-fade-in flex items-center justify-between gap-3 ${
+          isDark 
+            ? 'bg-[#1f2833] border-[#66fcf1] text-[#66fcf1] shadow-[0_0_20px_rgba(102,252,241,0.25)]' 
+            : 'bg-white border-sky-400 text-sky-900 shadow-lg'
+        }`}>
           <span>{toastMessage}</span>
-          <button onClick={() => setToastMessage(null)} className="text-[#c5c6c7] hover:text-white">✕</button>
+          <button onClick={() => setToastMessage(null)} className="opacity-70 hover:opacity-100">✕</button>
         </div>
       )}
 
@@ -146,17 +157,25 @@ export default function App() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         
         {/* Role Capability Banner */}
-        <div className="mb-6 px-4 py-2.5 rounded bg-[#1f2833]/70 border border-[#45a29e]/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+        <div className={`mb-6 px-4 py-3 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs transition-colors ${
+          isDark 
+            ? 'bg-[#1f2833]/70 border-[#45a29e]/30' 
+            : 'bg-white border-slate-200 shadow-sm'
+        }`}>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="w-2 h-2 rounded-full bg-[#66fcf1] animate-pulse" />
+            <span className={`w-2 h-2 rounded-full animate-pulse ${isDark ? 'bg-[#66fcf1]' : 'bg-emerald-500'}`} />
             <span>
-              Active Session: <strong className="text-white">{currentUser.fullName}</strong> ({currentUser.email})
+              Active Session: <strong className={isDark ? 'text-white' : 'text-slate-900'}>{currentUser.fullName}</strong> ({currentUser.email})
             </span>
-            <span className="text-[#45a29e]">·</span>
-            <span className="font-mono text-[#66fcf1]">Role: {currentUser.role}</span>
+            <span className={isDark ? 'text-[#45a29e]' : 'text-slate-400'}>·</span>
+            <span className={`font-mono font-bold ${isDark ? 'text-[#66fcf1]' : 'text-sky-700'}`}>
+              Role: {currentUser.role}
+            </span>
             <button
               onClick={() => setIsProfileOpen(true)}
-              className="ml-1 text-[11px] text-[#45a29e] hover:text-[#66fcf1] underline font-mono cursor-pointer"
+              className={`ml-1 text-[11px] underline font-mono cursor-pointer ${
+                isDark ? 'text-[#45a29e] hover:text-[#66fcf1]' : 'text-sky-600 hover:text-sky-800'
+              }`}
             >
               [View / Edit Profile]
             </button>
@@ -164,11 +183,19 @@ export default function App() {
 
           <div className="flex items-center gap-2">
             {currentUser.role === 'Admin' ? (
-              <span className="text-[11px] text-[#66fcf1] bg-[#0b0c10] px-2 py-0.5 rounded border border-[#66fcf1]/40">
+              <span className={`text-[11px] px-2.5 py-1 rounded-lg border font-mono ${
+                isDark 
+                  ? 'text-[#66fcf1] bg-[#0b0c10] border-[#66fcf1]/40' 
+                  : 'text-sky-800 bg-sky-50 border-sky-300'
+              }`}>
                 Admin Privileges: Full SOP Access + Manage Escalation Directory + Add Member via Email
               </span>
             ) : (
-              <span className="text-[11px] text-[#45a29e] bg-[#0b0c10] px-2 py-0.5 rounded border border-[#45a29e]/40">
+              <span className={`text-[11px] px-2.5 py-1 rounded-lg border font-mono ${
+                isDark 
+                  ? 'text-[#45a29e] bg-[#0b0c10] border-[#45a29e]/40' 
+                  : 'text-slate-700 bg-slate-50 border-slate-300'
+              }`}>
                 NOC Privileges: Review Guides, View Escalations &amp; Add Cases
               </span>
             )}
@@ -184,7 +211,7 @@ export default function App() {
           />
         )}
 
-        {/* Tab 2: Escalation Matrix & Directory (Admin can edit/add) */}
+        {/* Tab 2: Escalation Matrix & Directory (From Official PDF + On-call Directory) */}
         {activeTab === 'escalations' && (
           <EscalationMatrix currentUser={currentUser} />
         )}
@@ -229,12 +256,24 @@ export default function App() {
       />
 
       {/* Footer */}
-      <footer className="border-t border-[#45a29e]/30 bg-[#0b0c10] py-4 mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs text-[#45a29e]">
+      <footer className={`border-t py-4 mt-12 transition-colors ${
+        isDark ? 'border-[#45a29e]/30 bg-[#0b0c10]' : 'border-slate-200 bg-white'
+      }`}>
+        <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs ${
+          isDark ? 'text-[#45a29e]' : 'text-slate-500'
+        }`}>
           NOC Operational Guide · SCICOM (MSC) Berhad · Network Operations Center
         </div>
       </footer>
 
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 }

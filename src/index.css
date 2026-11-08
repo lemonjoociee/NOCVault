@@ -1,20 +1,45 @@
 @import "tailwindcss";
 
 /* ==========================================
-   NEON CARBON - CLEAN DESKTOP SYSTEM
+   SCICOM NOC OPERATIONS PORTAL THEME ENGINE
    ========================================== */
-:root {
-  --bg-main: #0b0f17;         /* Deep modern dark background */
-  --bg-color: #0b0f17;
-  --card-bg: #151d2a;         /* Card surface */
-  --card-border: #1e293b;     /* Subtle border */
-  --accent-cyan: #38bdf8;     /* Bright neon cyan */
-  --accent-teal: #2dd4bf;     /* Soft secondary teal */
+:root,
+html.dark {
+  --bg-main: #0b0c10;
+  --bg-card: #1f2833;
+  --bg-card-subtle: #0b0c10;
+  --bg-card-hover: #141c24;
+  --card-border: rgba(69, 162, 158, 0.4);
+  --card-border-strong: #45a29e;
+  --accent-cyan: #66fcf1;
+  --accent-teal: #45a29e;
   --accent-green: #66fcf1;
-  --accent-dark-green: #45a29e;
-  --text-primary: #f1f5f9;   /* High contrast primary text */
-  --text-muted: #94a3b8;     /* Muted body text */
+  --text-primary: #ffffff;
+  --text-secondary: #c5c6c7;
+  --text-muted: #8892b0;
+  --input-bg: #0b0c10;
+  --input-border: #45a29e;
+  --badge-bg: rgba(102, 252, 241, 0.12);
   --danger-color: #ff4d4d;
+}
+
+html.light {
+  --bg-main: #f1f5f9;
+  --bg-card: #ffffff;
+  --bg-card-subtle: #f8fafc;
+  --bg-card-hover: #f1f5f9;
+  --card-border: #e2e8f0;
+  --card-border-strong: #0d9488;
+  --accent-cyan: #0284c7;
+  --accent-teal: #0f766e;
+  --accent-green: #059669;
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --input-bg: #ffffff;
+  --input-border: #cbd5e1;
+  --badge-bg: rgba(2, 132, 199, 0.1);
+  --danger-color: #dc2626;
 }
 
 body {
@@ -25,34 +50,25 @@ body {
   padding: 0;
   line-height: 1.6;
   min-height: 100vh;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 code, pre, .font-mono {
   font-family: 'JetBrains Mono', monospace, Consolas, Courier New;
 }
 
-/* Custom scrollbars for NOC consoles and tables */
+/* Custom scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0b0f17;
+  background: var(--bg-main);
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: var(--card-border-strong);
   border-radius: 3px;
-  border: 1px solid #38bdf8;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #38bdf8;
-}
-
-/* Subtle glow utilities */
-.glow-cyan-sm {
-  box-shadow: 0 0 15px rgba(56, 189, 248, 0.15);
-}
-
-.glow-cyan {
-  box-shadow: 0 0 25px rgba(56, 189, 248, 0.25);
+  background: var(--accent-cyan);
 }

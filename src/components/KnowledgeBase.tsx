@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { IncidentCase, CaseCategory, SeverityLevel, AutomatedScript } from '../types';
+import { useTheme } from '../context/ThemeContext';
 import { 
   Search, 
   ArrowRight, 
@@ -22,6 +23,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
   onOpenPdf,
   onOpenAddCase
 }) => {
+  const { isDark } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedSeverity, setSelectedSeverity] = useState<string>('All');
@@ -67,27 +69,35 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
   const getSeverityBadge = (sev: SeverityLevel) => {
     if (sev.includes('P1')) {
       return (
-        <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-[#ff4d4d]/15 text-[#ff4d4d] border border-[#ff4d4d]/40">
+        <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold border ${
+          isDark ? 'bg-red-950/40 text-red-400 border-red-500/40' : 'bg-red-50 text-red-700 border-red-200'
+        }`}>
           P1 - CRITICAL
         </span>
       );
     }
     if (sev.includes('P2')) {
       return (
-        <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-[#f5a623]/15 text-[#f5a623] border border-[#f5a623]/40">
+        <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold border ${
+          isDark ? 'bg-amber-950/40 text-amber-400 border-amber-500/40' : 'bg-amber-50 text-amber-800 border-amber-300'
+        }`}>
           P2 - HIGH
         </span>
       );
     }
     if (sev.includes('P3')) {
       return (
-        <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-[#38bdf8]/15 text-[#38bdf8] border border-[#38bdf8]/40">
+        <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold border ${
+          isDark ? 'bg-sky-950/40 text-sky-400 border-sky-500/40' : 'bg-sky-50 text-sky-800 border-sky-300'
+        }`}>
           P3 - MEDIUM
         </span>
       );
     }
     return (
-      <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-[#45a29e]/15 text-[#66fcf1] border border-[#45a29e]/40">
+      <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold border ${
+        isDark ? 'bg-teal-950/40 text-[#66fcf1] border-teal-500/40' : 'bg-teal-50 text-teal-800 border-teal-300'
+      }`}>
         P4 - LOW
       </span>
     );
@@ -97,12 +107,18 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
     <div className="space-y-6">
       
       {/* Search & Filter Bar */}
-      <div className="bg-[#1f2833] border border-[#45a29e]/50 rounded-lg p-4 sm:p-5 shadow-[0_0_15px_rgba(102,252,241,0.1)]">
+      <div className={`border rounded-xl p-4 sm:p-5 transition-colors ${
+        isDark 
+          ? 'bg-[#1f2833] border-[#45a29e]/50 shadow-[0_0_15px_rgba(102,252,241,0.08)]' 
+          : 'bg-white border-slate-200 shadow-sm'
+      }`}>
         <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
           
           {/* Search Input */}
           <div className="relative flex-1">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#45a29e]">
+            <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none ${
+              isDark ? 'text-[#45a29e]' : 'text-slate-400'
+            }`}>
               <Search className="w-4 h-4" />
             </div>
             <input
@@ -110,20 +126,30 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search by case ID, keyword, IP address (10.11.4.28), symptom, or tag..."
-              className="w-full pl-9 pr-3 py-2 bg-[#0b0c10] border border-[#45a29e] rounded text-sm text-white placeholder-[#c5c6c7]/50 focus:outline-none focus:border-[#66fcf1]"
+              className={`w-full pl-9 pr-3 py-2 rounded-lg text-sm transition-colors focus:outline-none ${
+                isDark 
+                  ? 'bg-[#0b0c10] border border-[#45a29e] text-white placeholder-[#c5c6c7]/50 focus:border-[#66fcf1]' 
+                  : 'bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-400 focus:border-sky-500 focus:bg-white'
+              }`}
             />
           </div>
 
           {/* Severity Dropdown */}
           <div className="flex items-center gap-2 shrink-0">
-            <span className="text-xs text-[#45a29e] font-semibold flex items-center gap-1">
+            <span className={`text-xs font-semibold flex items-center gap-1 ${
+              isDark ? 'text-[#45a29e]' : 'text-slate-600'
+            }`}>
               <SlidersHorizontal className="w-3.5 h-3.5" />
               Severity:
             </span>
             <select
               value={selectedSeverity}
               onChange={e => setSelectedSeverity(e.target.value)}
-              className="px-3 py-2 bg-[#0b0c10] border border-[#45a29e] rounded text-xs text-white focus:outline-none focus:border-[#66fcf1]"
+              className={`px-3 py-2 rounded-lg text-xs focus:outline-none font-mono ${
+                isDark 
+                  ? 'bg-[#0b0c10] border border-[#45a29e] text-white focus:border-[#66fcf1]' 
+                  : 'bg-slate-50 border border-slate-300 text-slate-900 focus:border-sky-500'
+              }`}
             >
               <option value="All">All Severities</option>
               <option value="P1">P1 - Critical</option>
@@ -134,7 +160,11 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
 
             <button
               onClick={onOpenAddCase}
-              className="flex items-center gap-1.5 px-3 py-2 bg-[#45a29e] hover:bg-[#66fcf1] text-[#0b0c10] rounded text-xs font-bold transition-all shadow-sm shrink-0"
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all shadow-sm shrink-0 ${
+                isDark 
+                  ? 'bg-[#45a29e] hover:bg-[#66fcf1] text-[#0b0c10]' 
+                  : 'bg-teal-600 hover:bg-teal-700 text-white'
+              }`}
             >
               <PlusCircle className="w-4 h-4" />
               <span>Add Case</span>
@@ -143,18 +173,26 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
         </div>
 
         {/* Project Name Filter Pills */}
-        <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-[#45a29e]/20 overflow-x-auto pb-1">
-          <span className="text-[11px] text-[#45a29e] font-semibold uppercase tracking-wider shrink-0 mr-1 font-mono">
+        <div className={`flex items-center gap-1.5 mt-3 pt-3 border-t overflow-x-auto pb-1 ${
+          isDark ? 'border-[#45a29e]/20' : 'border-slate-200'
+        }`}>
+          <span className={`text-[11px] font-semibold uppercase tracking-wider shrink-0 mr-1 font-mono ${
+            isDark ? 'text-[#45a29e]' : 'text-slate-500'
+          }`}>
             Project:
           </span>
           {categories.map(cat => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-3 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
+              className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
                 selectedCategory === cat
-                  ? 'bg-[#66fcf1] text-[#0b0c10] font-bold shadow-sm'
-                  : 'bg-[#0b0c10] text-[#c5c6c7] hover:text-white border border-[#45a29e]/40'
+                  ? isDark 
+                    ? 'bg-[#66fcf1] text-[#0b0c10] font-bold shadow-sm'
+                    : 'bg-sky-600 text-white font-bold shadow-sm'
+                  : isDark 
+                    ? 'bg-[#0b0c10] text-[#c5c6c7] hover:text-white border border-[#45a29e]/40'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'
               }`}
             >
               {cat}
@@ -164,12 +202,14 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
       </div>
 
       {/* Case Count and Status Bar */}
-      <div className="flex items-center justify-between text-xs text-[#c5c6c7] px-1 font-mono">
+      <div className={`flex items-center justify-between text-xs px-1 font-mono ${
+        isDark ? 'text-[#c5c6c7]' : 'text-slate-600'
+      }`}>
         <div>
-          Showing <span className="text-[#66fcf1] font-bold">{filteredCases.length}</span> documented NOC operational procedures
-          {selectedCategory !== 'All' && <span> for Project: <strong className="text-white">{selectedCategory}</strong></span>}
+          Showing <span className={`font-bold ${isDark ? 'text-[#66fcf1]' : 'text-sky-700'}`}>{filteredCases.length}</span> documented NOC operational procedures
+          {selectedCategory !== 'All' && <span> for Project: <strong className={isDark ? 'text-white' : 'text-slate-900'}>{selectedCategory}</strong></span>}
         </div>
-        <div className="text-[11px] text-[#45a29e] hidden sm:block">
+        <div className={`text-[11px] hidden sm:block ${isDark ? 'text-[#45a29e]' : 'text-slate-500'}`}>
           All workflows verified against SCICOM operational standards
         </div>
       </div>
@@ -180,17 +220,25 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
           {filteredCases.map((c) => (
             <div
               key={c.id}
-              className="bg-[#1f2833] border border-[#45a29e]/50 hover:border-[#66fcf1] rounded-lg p-5 shadow-[0_0_15px_rgba(102,252,241,0.06)] hover:shadow-[0_0_20px_rgba(102,252,241,0.18)] transition-all flex flex-col justify-between group"
+              className={`border rounded-xl p-5 transition-all flex flex-col justify-between group shadow-sm ${
+                isDark 
+                  ? 'bg-[#1f2833] border-[#45a29e]/50 hover:border-[#66fcf1] shadow-[0_0_15px_rgba(102,252,241,0.06)] hover:shadow-[0_0_20px_rgba(102,252,241,0.18)]' 
+                  : 'bg-white border-slate-200 hover:border-sky-400 hover:shadow-md'
+              }`}
             >
               <div>
                 {/* Card Top Row: Case Number & Project Name */}
                 <div className="flex items-center justify-between gap-2 mb-2.5">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-[#66fcf1] px-2 py-0.5 rounded bg-[#0b0c10] border border-[#66fcf1]/40">
+                    <span className={`font-mono text-xs font-bold px-2 py-0.5 rounded-md border ${
+                      isDark 
+                        ? 'text-[#66fcf1] bg-[#0b0c10] border-[#66fcf1]/40' 
+                        : 'text-sky-800 bg-sky-50 border-sky-300'
+                    }`}>
                       {c.caseNumber}
                     </span>
-                    <span className="text-xs text-[#c5c6c7] font-medium">
-                      Project: <strong className="text-white font-semibold">{c.category}</strong>
+                    <span className={`text-xs font-medium ${isDark ? 'text-[#c5c6c7]' : 'text-slate-600'}`}>
+                      Project: <strong className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>{c.category}</strong>
                     </span>
                   </div>
 
@@ -200,33 +248,43 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
                 {/* Title */}
                 <h3 
                   onClick={() => onSelectCase(c)}
-                  className="text-base font-bold text-white group-hover:text-[#66fcf1] transition-colors cursor-pointer leading-snug mb-2"
+                  className={`text-base font-bold transition-colors cursor-pointer leading-snug mb-2 ${
+                    isDark ? 'text-white group-hover:text-[#66fcf1]' : 'text-slate-900 group-hover:text-sky-700'
+                  }`}
                 >
                   {c.title}
                 </h3>
 
                 {/* Summary */}
-                <p className="text-xs text-[#c5c6c7] line-clamp-2 leading-relaxed mb-4">
+                <p className={`text-xs line-clamp-2 leading-relaxed mb-4 ${
+                  isDark ? 'text-[#c5c6c7]' : 'text-slate-600'
+                }`}>
                   {c.summary}
                 </p>
 
                 {/* Target Nodes / IPs (rendered if present) */}
                 {c.targetNodes && c.targetNodes.length > 0 && (
                   <div className="mb-4 flex flex-wrap items-center gap-1.5">
-                    <span className="text-[10px] uppercase font-mono text-[#45a29e] flex items-center gap-1">
+                    <span className={`text-[10px] uppercase font-mono flex items-center gap-1 ${
+                      isDark ? 'text-[#45a29e]' : 'text-slate-500'
+                    }`}>
                       <Server className="w-3 h-3" />
                       Target:
                     </span>
                     {c.targetNodes.slice(0, 3).map((node, nIdx) => (
                       <span
                         key={nIdx}
-                        className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-[#0b0c10] text-[#66fcf1] border border-[#45a29e]/40"
+                        className={`font-mono text-[11px] px-1.5 py-0.5 rounded-md border ${
+                          isDark 
+                            ? 'bg-[#0b0c10] text-[#66fcf1] border-[#45a29e]/40' 
+                            : 'bg-slate-100 text-slate-800 border-slate-300'
+                        }`}
                       >
                         {node}
                       </span>
                     ))}
                     {c.targetNodes.length > 3 && (
-                      <span className="text-[10px] text-[#c5c6c7]">
+                      <span className={`text-[10px] ${isDark ? 'text-[#c5c6c7]' : 'text-slate-500'}`}>
                         +{c.targetNodes.length - 3} more
                       </span>
                     )}
@@ -235,23 +293,31 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
               </div>
 
               {/* Card Bottom / Action Row */}
-              <div className="pt-3 border-t border-[#45a29e]/20 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div className={`pt-3 border-t flex flex-wrap items-center justify-between gap-2 text-xs ${
+                isDark ? 'border-[#45a29e]/20' : 'border-slate-100'
+              }`}>
                 
                 {/* Meta info */}
-                <div className="flex items-center gap-3 text-[11px] text-[#c5c6c7]/80">
+                <div className={`flex items-center gap-3 text-[11px] ${
+                  isDark ? 'text-[#c5c6c7]/80' : 'text-slate-500'
+                }`}>
                   <span className="flex items-center gap-1">
-                    <Clock className="w-3 h-3 text-[#45a29e]" />
+                    <Clock className={`w-3 h-3 ${isDark ? 'text-[#45a29e]' : 'text-slate-400'}`} />
                     {c.escalationPath.slaMins ? `SLA: ${c.escalationPath.slaMins}m` : 'Standard SLA'}
                   </span>
                   <span>·</span>
                   <span>{c.workflowSteps.length} Steps</span>
                 </div>
 
-                {/* Action Button: View SOP only (No PDF Guide button) */}
+                {/* Action Button: View SOP */}
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => onSelectCase(c)}
-                    className="px-3.5 py-1.5 rounded bg-[#45a29e] hover:bg-[#66fcf1] text-[#0b0c10] font-bold text-xs flex items-center gap-1 transition-colors shadow-sm"
+                    className={`px-3.5 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1 transition-colors shadow-sm ${
+                      isDark 
+                        ? 'bg-[#45a29e] hover:bg-[#66fcf1] text-[#0b0c10]' 
+                        : 'bg-teal-600 hover:bg-teal-700 text-white'
+                    }`}
                   >
                     <span>View SOP</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -263,12 +329,16 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
           ))}
         </div>
       ) : (
-        <div className="p-12 text-center bg-[#1f2833] border border-[#45a29e]/40 rounded-lg space-y-3">
-          <div className="w-12 h-12 mx-auto rounded-full bg-[#0b0c10] border border-[#45a29e] flex items-center justify-center text-[#45a29e]">
+        <div className={`p-12 text-center rounded-xl border space-y-3 ${
+          isDark ? 'bg-[#1f2833] border-[#45a29e]/40' : 'bg-white border-slate-200'
+        }`}>
+          <div className={`w-12 h-12 mx-auto rounded-full border flex items-center justify-center ${
+            isDark ? 'bg-[#0b0c10] border-[#45a29e] text-[#45a29e]' : 'bg-slate-100 border-slate-300 text-slate-500'
+          }`}>
             <Search className="w-6 h-6" />
           </div>
-          <h3 className="text-base font-bold text-white">No Matching Incidents Found</h3>
-          <p className="text-xs text-[#c5c6c7] max-w-md mx-auto">
+          <h3 className={`text-base font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>No Matching Incidents Found</h3>
+          <p className={`text-xs max-w-md mx-auto ${isDark ? 'text-[#c5c6c7]' : 'text-slate-600'}`}>
             No standard operating procedures matched &quot;{searchQuery}&quot; under project &quot;{selectedCategory}&quot;.
           </p>
           <div className="pt-2 flex justify-center gap-3">
@@ -278,13 +348,17 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
                 setSelectedCategory('All');
                 setSelectedSeverity('All');
               }}
-              className="px-3 py-1.5 bg-[#0b0c10] text-[#66fcf1] border border-[#45a29e] rounded text-xs"
+              className={`px-3 py-1.5 rounded-lg text-xs font-mono border ${
+                isDark ? 'bg-[#0b0c10] text-[#66fcf1] border-[#45a29e]' : 'bg-slate-100 text-slate-700 border-slate-300'
+              }`}
             >
               Clear Filters
             </button>
             <button
               onClick={onOpenAddCase}
-              className="px-3 py-1.5 bg-[#45a29e] text-[#0b0c10] font-bold rounded text-xs"
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold ${
+                isDark ? 'bg-[#45a29e] text-[#0b0c10]' : 'bg-teal-600 text-white'
+              }`}
             >
               Create New Case
             </button>

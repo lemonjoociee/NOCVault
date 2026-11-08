@@ -1,11 +1,12 @@
-import { User, IncidentCase, AutomatedScript, MemberInvitation, EscalationContact } from '../types';
-import { INITIAL_USERS, INITIAL_CASES, INITIAL_SCRIPTS, ESCALATION_TEAMS } from '../data/initialData';
+import { User, IncidentCase, AutomatedScript, MemberInvitation, EscalationContact, EscalationGuideRow } from '../types';
+import { INITIAL_USERS, INITIAL_CASES, INITIAL_SCRIPTS, ESCALATION_TEAMS, INITIAL_ESCALATION_GUIDE_ROWS } from '../data/initialData';
 
 const USERS_STORAGE_KEY = 'noc_portal_users_v1';
 const CASES_STORAGE_KEY = 'noc_portal_cases_v1';
 const SCRIPTS_STORAGE_KEY = 'noc_portal_scripts_v1';
 const INVITES_STORAGE_KEY = 'noc_portal_invites_v1';
 const CONTACTS_STORAGE_KEY = 'noc_portal_escalation_contacts_v1';
+const ESCALATION_GUIDE_STORAGE_KEY = 'noc_portal_escalation_guide_v1';
 
 export function getStoredUsers(): User[] {
   try {
@@ -269,6 +270,52 @@ export function updateEscalationContact(contact: EscalationContact): EscalationC
 export function deleteEscalationContact(contactId: string): EscalationContact[] {
   const current = getStoredContacts().filter(c => c.id !== contactId);
   saveContacts(current);
+  return current;
+}
+
+export function getStoredEscalationGuide(): EscalationGuideRow[] {
+  try {
+    const raw = localStorage.getItem(ESCALATION_GUIDE_STORAGE_KEY);
+    if (!raw) {
+      localStorage.setItem(ESCALATION_GUIDE_STORAGE_KEY, JSON.stringify(INITIAL_ESCALATION_GUIDE_ROWS));
+      return INITIAL_ESCALATION_GUIDE_ROWS;
+    }
+    return JSON.parse(raw);
+  } catch (e) {
+    console.error('Failed to parse stored escalation guide:', e);
+    return INITIAL_ESCALATION_GUIDE_ROWS;
+  }
+}
+
+export function saveEscalationGuide(rows: EscalationGuideRow[]): void {
+  try {
+    localStorage.setItem(ESCALATION_GUIDE_STORAGE_KEY, JSON.stringify(rows));
+  } catch (e) {
+    console.error('Failed to save escalation guide:', e);
+  }
+}
+
+export function addEscalationGuideRow(row: Omit<EscalationGuideRow, 'id'>): EscalationGuideRow {
+  const current = getStoredEscalationGuide();
+  const created: EscalationGuideRow = {
+    ...row,
+    id: `esc-guide-${Date.now()}`
+  };
+  const updated = [...current, created];
+  saveEscalationGuide(updated);
+  return created;
+}
+
+export function updateEscalationGuideRow(row: EscalationGuideRow): EscalationGuideRow[] {
+  const current = getStoredEscalationGuide();
+  const updated = current.map(r => r.id === row.id ? row : r);
+  saveEscalationGuide(updated);
+  return updated;
+}
+
+export function deleteEscalationGuideRow(rowId: string): EscalationGuideRow[] {
+  const current = getStoredEscalationGuide().filter(r => r.id !== rowId);
+  saveEscalationGuide(current);
   return current;
 }
 
