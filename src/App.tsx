@@ -11,14 +11,31 @@ import { ThemeProvider } from './context/ThemeContext';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState<'Admin' | 'NOC'>('Admin'); // Default or login-selected role
+  const [userRole, setUserRole] = useState<'Admin' | 'NOC'>('Admin');
   const [isLoading, setIsLoading] = useState(false);
   const [isFadingOut, setIsFadingOut] = useState(false);
   
   const [activeTab, setActiveTab] = useState('home');
 
+  // Globally shared incidents list accessible by Admin and NOC users alike
+  const [incidents, setIncidents] = useState<any[]>([
+    {
+      id: 'INC-782',
+      title: 'GP Dynamics Gateway Timeout',
+      project: 'Telekom Malaysia (TM) Project Operations',
+      category: 'Application Error',
+      severity: 'SEV-2 (High)',
+      impact: 'Gateway timeout affecting primary agent authentication queues.',
+      summary: 'API gateway timeout experienced during peak shift login hours.',
+      steps: [
+        'Check gateway status and upstream load balancers.',
+        'Verify active sessions in database connection pool.',
+        'Restart authentication microservice container if required.'
+      ]
+    }
+  ]);
+
   const handleLoginTrigger = (email: string) => {
-    // Automatically assign Admin role if email contains 'admin' or 'manager', otherwise NOC
     const assignedRole = email.toLowerCase().includes('admin') || email.toLowerCase().includes('manager') ? 'Admin' : 'NOC';
     setUserRole(assignedRole);
 
@@ -26,13 +43,8 @@ export default function App() {
     setIsFadingOut(false);
     setIsAuthenticated(true);
 
-    setTimeout(() => {
-      setIsFadingOut(true);
-    }, 1200);
-
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 1700);
+    setTimeout(() => { setIsFadingOut(true); }, 1200);
+    setTimeout(() => { setIsLoading(false); }, 1700);
   };
 
   return (
@@ -44,6 +56,7 @@ export default function App() {
           {activeTab === 'home' && (
             <KnowledgeBase 
               userRole={userRole}
+              customIncidents={incidents}
               setActiveTab={setActiveTab} 
               onOpenAddCase={() => setActiveTab('addcase')}
               onOpenProfile={() => setActiveTab('profile')}
@@ -51,19 +64,24 @@ export default function App() {
             />
           )}
           
+          {/* Accessible by both Admin and NOC users */}
           {activeTab === 'documents' && (
-            <DocumentsView onBack={() => setActiveTab('home')} />
+            <DocumentsView 
+              customIncidents={incidents} 
+              onBack={() => setActiveTab('home')} 
+            />
           )}
 
           {activeTab === 'profile' && (
             <ProfileView onBack={() => setActiveTab('home')} />
           )}
 
+          {/* Accessible by both Admin and NOC users */}
           {activeTab === 'addcase' && (
             <AddCaseView 
               onBack={() => setActiveTab('home')} 
               onCaseCreated={(newCase) => {
-                console.log('New case created:', newCase);
+                setIncidents(prev => [newCase, ...prev]);
               }}
             />
           )}
@@ -72,7 +90,6 @@ export default function App() {
             <EscalationMatrix onBack={() => setActiveTab('home')} />
           )}
 
-          {/* Restrict Admin Console route if user is NOC */}
           {activeTab === 'admin' && userRole === 'Admin' && (
             <AdminMemberManager onBack={() => setActiveTab('home')} />
           )}
@@ -82,20 +99,9 @@ export default function App() {
       {/* Global Loading Overlay */}
       {isLoading && (
         <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100vh',
-          background: '#0a0a0a',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 999999,
-          flexDirection: 'column',
-          opacity: isFadingOut ? 0 : 1,
-          transition: 'opacity 0.5s ease-in-out',
-          pointerEvents: isFadingOut ? 'none' : 'auto'
+          position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', background: '#0a0a0a',
+          display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 999999, flexDirection: 'column',
+          opacity: isFadingOut ? 0 : 1, transition: 'opacity 0.5s ease-in-out', pointerEvents: isFadingOut ? 'none' : 'auto'
         }}>
           <div className="loader-prism" style={{ width: '100px', height: '100px', position: 'relative', margin: '0 auto 30px' }}>
             <div className="prism-face" style={{ position: 'absolute', width: '100%', height: '100%', border: '2px solid transparent', transformOrigin: 'center', animation: 'prismRotate 3s linear infinite', borderImage: 'linear-gradient(45deg, #ff3333, #00a8ff) 1', animationDelay: '0s' }}></div>
