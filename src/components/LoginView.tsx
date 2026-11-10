@@ -8,7 +8,7 @@ export default function LoginView({ onLogin }: LoginViewProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  // Generate random floating particles for the live background effect
+  // Floating background particles
   const [particles] = useState(() => 
     Array.from({ length: 20 }).map(() => ({
       left: Math.random() * 100,
@@ -21,7 +21,7 @@ export default function LoginView({ onLogin }: LoginViewProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onLogin();
+    onLogin(); // Triggers the parent loading sequence instantly
   };
 
   return (
@@ -32,9 +32,22 @@ export default function LoginView({ onLogin }: LoginViewProps) {
       justifyContent: 'center', 
       position: 'relative', 
       overflow: 'hidden',
-      backgroundColor: '#0a0a0a'
+      backgroundColor: '#0a0a0a',
+      backgroundImage: `
+        radial-gradient(ellipse at center, rgba(153, 69, 255, 0.1) 0%, transparent 50%),
+        repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255, 255, 255, 0.03) 2px, rgba(255, 255, 255, 0.03) 4px),
+        repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255, 255, 255, 0.03) 2px, rgba(255, 255, 255, 0.03) 4px)
+      `
     }}>
-      
+      <style>{`
+        @keyframes liveFloat {
+          0% { transform: translateY(0px) translateX(0px); opacity: 0; }
+          20% { opacity: 0.8; }
+          80% { opacity: 0.8; }
+          100% { transform: translateY(-100vh) translateX(50px); opacity: 0; }
+        }
+      `}</style>
+
       {/* LIVE BACKGROUND ANIMATION LAYER */}
       <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 0, overflow: 'hidden' }}>
         {particles.map((p, i) => (
@@ -57,15 +70,6 @@ export default function LoginView({ onLogin }: LoginViewProps) {
         ))}
       </div>
 
-      <style>{`
-        @keyframes liveFloat {
-          0% { transform: translateY(0px) translateX(0px); opacity: 0; }
-          20% { opacity: 0.8; }
-          80% { opacity: 0.8; }
-          100% { transform: translateY(-100vh) translateX(50px); opacity: 0; }
-        }
-      `}</style>
-
       {/* Login Card Container */}
       <div style={{ 
         position: 'relative',
@@ -81,7 +85,6 @@ export default function LoginView({ onLogin }: LoginViewProps) {
         textAlign: 'center'
       }}>
         
-        {/* Company Logo replacing NOC VAULT text */}
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '15px' }}>
           <img 
             src="/images/scicomlogo.png" 

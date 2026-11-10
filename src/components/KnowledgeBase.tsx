@@ -3,11 +3,12 @@ import React, { useState, useEffect } from 'react';
 interface KnowledgeBaseProps {
   setActiveTab: (tab: string) => void;
   setShowAddCase: (show: boolean) => void;
-  setShowProfile: (show: boolean) => void;
+  onOpenProfile: () => void;
+  onOpenAddCase: () => void;
   onLogout: () => void;
 }
 
-export default function KnowledgeBase({ setActiveTab, setShowAddCase, setShowProfile, onLogout }: KnowledgeBaseProps) {
+export default function KnowledgeBase({ setActiveTab, setShowAddCase, onOpenProfile, onOpenAddCase, onLogout }: KnowledgeBaseProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   // Generate random floating particles on load for live background effect
@@ -54,8 +55,8 @@ export default function KnowledgeBase({ setActiveTab, setShowAddCase, setShowPro
       title: 'New Incident',
       desc: 'Log a new incident ticket, assign severity, and document initial troubleshooting.',
       tags: ['INCIDENT', 'TICKET'],
-      action: () => setShowAddCase(true),
-      btnText: '+ Create Ticket',
+      action: onOpenAddCase, 
+      btnText: '+ Add Case',
       image: '/images/caseicon.png'
     }
   ];
@@ -111,7 +112,7 @@ export default function KnowledgeBase({ setActiveTab, setShowAddCase, setShowPro
       {/* Upper-Right Buttons */}
       <div style={{ position: 'absolute', top: '25px', right: '35px', display: 'flex', gap: '12px', zIndex: 1000 }}>
         <button 
-          onClick={() => setShowProfile(true)}
+          onClick={onOpenProfile}
           style={{ background: 'rgba(255, 255, 255, 0.08)', border: '1px solid rgba(255, 255, 255, 0.2)', color: '#fff', padding: '8px 18px', borderRadius: '20px', cursor: 'pointer', fontWeight: '500', fontSize: '0.9rem' }}
         >
           Edit Profile
