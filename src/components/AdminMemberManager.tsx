@@ -52,7 +52,6 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
     setMembers([...members, newMember]);
     setShowAddModal(false);
 
-    // Show simulated email invitation notification
     setToastMessage(`Invitation email successfully sent to ${formEmail} (${formRole} role)!`);
     setTimeout(() => setToastMessage(''), 4000);
   };
@@ -162,39 +161,67 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
         </table>
       </div>
 
-      {/* ADD MEMBER MODAL */}
+      {/* ADD MEMBER MODAL WITH EMAIL PREVIEW */}
       {showAddModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ width: '420px', backgroundColor: '#121216', border: '1px solid rgba(0,255,255,0.3)', borderRadius: '20px', padding: '30px', boxShadow: '0 20px 50px rgba(0,0,0,0.9)' }}>
-            <h2 style={{ fontSize: '1.2rem', marginBottom: '20px', color: '#00ffff' }}>Add New Team Member & Send Invite</h2>
-            <form onSubmit={handleSaveAdd} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-              <div>
-                <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', marginBottom: '6px', textTransform: 'uppercase' }}>Full Name</label>
-                <input type="text" required placeholder="e.g. John Doe" value={formName} onChange={(e) => setFormName(e.target.value)} style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', color: '#fff', outline: 'none' }} />
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+          <div style={{ width: '850px', maxHeight: '90vh', overflowY: 'auto', backgroundColor: '#121216', border: '1px solid rgba(0,255,255,0.3)', borderRadius: '20px', padding: '30px', boxShadow: '0 20px 50px rgba(0,0,0,0.9)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
+            
+            {/* Left Column: Form Inputs */}
+            <div>
+              <h2 style={{ fontSize: '1.2rem', marginBottom: '20px', color: '#00ffff' }}>Add Team Member & Send Invite</h2>
+              <form onSubmit={handleSaveAdd} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                <div>
+                  <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', marginBottom: '6px', textTransform: 'uppercase' }}>Full Name</label>
+                  <input type="text" required placeholder="e.g. John Doe" value={formName} onChange={(e) => setFormName(e.target.value)} style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', color: '#fff', outline: 'none' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', marginBottom: '6px', textTransform: 'uppercase' }}>Email Address</label>
+                  <input type="email" required placeholder="john@scicom.com.my" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', color: '#fff', outline: 'none' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', marginBottom: '6px', textTransform: 'uppercase' }}>System Role</label>
+                  <select value={formRole} onChange={(e) => setFormRole(e.target.value)} style={{ width: '100%', padding: '12px', background: '#121216', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', color: '#fff', outline: 'none' }}>
+                    <option value="NOC">NOC (Standard Access)</option>
+                    <option value="Admin">Admin (Full Access)</option>
+                  </select>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+                  <button type="submit" style={{ flex: 1, padding: '12px', background: 'linear-gradient(90deg, #8a2be2, #00ffff)', border: 'none', borderRadius: '20px', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}>Send Invite & Add</button>
+                  <button type="button" onClick={() => setShowAddModal(false)} style={{ flex: 1, padding: '12px', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '20px', color: '#fff', cursor: 'pointer' }}>Cancel</button>
+                </div>
+              </form>
+            </div>
+
+            {/* Right Column: Live Email Invitation Preview */}
+            <div style={{ backgroundColor: '#1a1a22', border: '1px dashed rgba(0,255,255,0.3)', borderRadius: '14px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#00ffff', letterSpacing: '1px', fontWeight: 'bold', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '8px' }}>
+                📄 Invitation Email Preview
               </div>
-              <div>
-                <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', marginBottom: '6px', textTransform: 'uppercase' }}>Email Address</label>
-                <input type="email" required placeholder="john@scicom.com.my" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', color: '#fff', outline: 'none' }} />
+              <div style={{ fontSize: '0.8rem', color: '#b0b0b0' }}>
+                <strong>To:</strong> {formEmail || 'recipient@scicom.com.my'}
               </div>
-              <div>
-                <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', marginBottom: '6px', textTransform: 'uppercase' }}>System Role</label>
-                <select value={formRole} onChange={(e) => setFormRole(e.target.value)} style={{ width: '100%', padding: '12px', background: '#121216', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', color: '#fff', outline: 'none' }}>
-                  <option value="NOC">NOC</option>
-                  <option value="Admin">Admin</option>
-                </select>
+              <div style={{ fontSize: '0.8rem', color: '#b0b0b0', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '8px' }}>
+                <strong>Subject:</strong> Invitation to Scicom Operations Portal
               </div>
-              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                <button type="submit" style={{ flex: 1, padding: '12px', background: 'linear-gradient(90deg, #8a2be2, #00ffff)', border: 'none', borderRadius: '20px', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}>Send Invite & Add</button>
-                <button type="button" onClick={() => setShowAddModal(false)} style={{ flex: 1, padding: '12px', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '20px', color: '#fff', cursor: 'pointer' }}>Cancel</button>
+              <div style={{ backgroundColor: 'rgba(18,18,22,0.8)', padding: '15px', borderRadius: '10px', fontSize: '0.85://rem', color: '#e0e0e0', lineHeight: '1.5', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <p style={{ margin: 0 }}>Hello <strong>{formName || '[Full Name]'}</strong>,</p>
+                <p style={{ margin: 0 }}>You have been invited to join the <strong>Scicom Operations Portal</strong> as a <strong>{formRole}</strong> user.</p>
+                <p style={{ margin: 0, fontSize: '0.8rem', color: '#aaa' }}>Your role grants you access to official runbooks, escalation matrices, and incident management workflows.</p>
+                <div style={{ textAlign: 'center', marginTop: '10px' }}>
+                  <span style={{ display: 'inline-block', padding: '8px 20px', background: 'linear-gradient(90deg, #8a2be2, #00ffff)', color: '#fff', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                    Accept Invitation & Login
+                  </span>
+                </div>
               </div>
-            </form>
+            </div>
+
           </div>
         </div>
       )}
 
       {/* EDIT MEMBER MODAL */}
       {editingMember && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ width: '420px', backgroundColor: '#121216', border: '1px solid rgba(0,255,255,0.3)', borderRadius: '20px', padding: '30px', boxShadow: '0 20px 50px rgba(0,0,0,0.9)' }}>
             <h2 style={{ fontSize: '1.2rem', marginBottom: '20px', color: '#00ffff' }}>Edit Team Member</h2>
             <form onSubmit={handleSaveEdit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
