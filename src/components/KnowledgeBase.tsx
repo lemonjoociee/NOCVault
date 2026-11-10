@@ -1,28 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
 interface KnowledgeBaseProps {
+  userRole: 'Admin' | 'NOC';
   setActiveTab: (tab: string) => void;
-  setShowAddCase: (show: boolean) => void;
-  onOpenProfile: () => void;
   onOpenAddCase: () => void;
+  onOpenProfile: () => void;
   onLogout: () => void;
 }
 
-export default function KnowledgeBase({ setActiveTab, setShowAddCase, onOpenProfile, onOpenAddCase, onLogout }: KnowledgeBaseProps) {
+export default function KnowledgeBase({ userRole, setActiveTab, onOpenAddCase, onOpenProfile, onLogout }: KnowledgeBaseProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Generate random floating particles on load for live background effect
-  const [particles] = useState(() => 
-    Array.from({ length: 20 }).map(() => ({
-      left: Math.random() * 100,
-      top: Math.random() * 100,
-      size: Math.random() * 3 + 1,
-      duration: Math.random() * 10 + 10,
-      delay: Math.random() * 5
-    }))
-  );
-
-  const cards = [
+  const allCards = [
     {
       id: 'knowledge',
       title: 'Knowledge Base',
@@ -48,20 +37,24 @@ export default function KnowledgeBase({ setActiveTab, setShowAddCase, onOpenProf
       tags: ['ROLES', 'SECURITY'],
       action: () => setActiveTab('admin'),
       btnText: 'Manage Team',
-      image: '/images/adminicon.png'
+      image: '/images/adminicon.png',
+      adminOnly: true
     },
     {
       id: 'addcase',
       title: 'New Incident',
       desc: 'Log a new incident ticket, assign severity, and document initial troubleshooting.',
       tags: ['INCIDENT', 'TICKET'],
-      action: onOpenAddCase, 
+      action: onOpenAddCase,
       btnText: '+ Add Case',
       image: '/images/caseicon.png'
     }
   ];
 
+  // Filter cards: If NOC, exclude cards marked adminOnly
+  const cards = allCards.filter(card => userRole === 'Admin' || !card.adminOnly);
   const totalCards = cards.length;
+
   const nextSlide = () => setCurrentIndex((prev) => (prev + 1) % totalCards);
   const prevSlide = () => setCurrentIndex((prev) => (prev - 1 + totalCards) % totalCards);
 
@@ -77,40 +70,11 @@ export default function KnowledgeBase({ setActiveTab, setShowAddCase, onOpenProf
       perspective: '1400px'
     }}>
       
-      {/* LIVE BACKGROUND ANIMATION LAYER */}
-      <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 0, overflow: 'hidden' }}>
-        {particles.map((p, i) => (
-          <div
-            key={i}
-            style={{
-              position: 'absolute',
-              left: `${p.left}%`,
-              top: `${p.top}%`,
-              width: `${p.size}px`,
-              height: `${p.size}px`,
-              backgroundColor: '#00ffff',
-              borderRadius: '50%',
-              boxShadow: '0 0 8px #00ffff, 0 0 15px #9945ff',
-              opacity: 0.6,
-              animation: `liveFloat ${p.duration}s linear infinite`,
-              animationDelay: `${p.delay}s`
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Global CSS keyframes for the floating live particles */}
-      <style>{`
-        @keyframes liveFloat {
-          0% { transform: translateY(0px) translateX(0px); opacity: 0; }
-          20% { opacity: 0.8; }
-          80% { opacity: 0.8; }
-          100% { transform: translateY(-100vh) translateX(50px); opacity: 0; }
-        }
-      `}</style>
-
       {/* Upper-Right Buttons */}
       <div style={{ position: 'absolute', top: '25px', right: '35px', display: 'flex', gap: '12px', zIndex: 1000 }}>
+        <span style={{ padding: '8px 14px', borderRadius: '20px', background: 'rgba(0,255,255,0.1)', border: '1px solid #00ffff', color: '#00ffff', fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
+          Role: {userRole}
+        </span>
         <button 
           onClick={onOpenProfile}
           style={{ background: 'rgba(255, 255, 255, 0.08)', border: '1px solid rgba(255, 255, 255, 0.2)', color: '#fff', padding: '8px 18px', borderRadius: '20px', cursor: 'pointer', fontWeight: '500', fontSize: '0.9rem' }}
@@ -127,11 +91,7 @@ export default function KnowledgeBase({ setActiveTab, setShowAddCase, onOpenProf
 
       {/* Top-Center Company Logo */}
       <div style={{ position: 'absolute', top: '25px', left: '35px', textAlign: 'center', zIndex: 100 }}>
-        <img 
-          src="/images/scicomlogo.png" 
-          alt="Scicom Logo" 
-          style={{ height: '40px', objectFit: 'contain' }} 
-        />
+        <img src="/images/scicomlogo.png" alt="Scicom Logo" style={{ height: '40px', objectFit: 'contain' }} />
       </div>
 
       {/* Indicator Dots */}
@@ -154,17 +114,7 @@ export default function KnowledgeBase({ setActiveTab, setShowAddCase, onOpenProf
       </div>
 
       {/* 3D Carousel Stage */}
-      <div style={{ 
-        position: 'relative', 
-        width: '100%', 
-        maxWidth: '1000px', 
-        height: '480px', 
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 10
-      }}>
-        
+      <div style={{ position: 'relative', width: '100%', maxWidth: '1000px', height: '480px', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
         {cards.map((card, index) => {
           let offset = (index - currentIndex + totalCards) % totalCards;
           if (offset > totalCards / 2) {
@@ -172,7 +122,6 @@ export default function KnowledgeBase({ setActiveTab, setShowAddCase, onOpenProf
           }
 
           const isActive = offset === 0;
-          
           const translateX = offset * 340; 
           const translateZ = -Math.abs(offset) * 120; 
           const rotateY = offset * -18; 
@@ -205,22 +154,11 @@ export default function KnowledgeBase({ setActiveTab, setShowAddCase, onOpenProf
               <img 
                 src={card.image} 
                 alt={card.title} 
-                style={{ 
-                  width: '100%', 
-                  height: '130px', 
-                  backgroundColor: '#ffffff', 
-                  objectFit: 'contain', 
-                  padding: '12px', 
-                  borderRadius: '12px', 
-                  marginBottom: '15px', 
-                  border: '1px solid rgba(255,255,255,0.1)' 
-                }} 
+                style={{ width: '100%', height: '130px', backgroundColor: '#ffffff', objectFit: 'contain', padding: '12px', borderRadius: '12px', marginBottom: '15px', border: '1px solid rgba(255,255,255,0.1)' }} 
               />
               
               <h3 style={{ color: '#fff', fontSize: '1.3rem', marginBottom: '8px', letterSpacing: '1px' }}>{card.title}</h3>
-              <p style={{ color: '#b0b0b0', fontSize: '0.8rem', marginBottom: '15px', lineHeight: '1.4' }}>
-                {card.desc}
-              </p>
+              <p style={{ color: '#b0b0b0', fontSize: '0.8rem', marginBottom: '15px', lineHeight: '1.4' }}>{card.desc}</p>
               
               <div style={{ display: 'flex', gap: '8px', marginBottom: '15px' }}>
                 {card.tags.map(tag => (
@@ -241,7 +179,7 @@ export default function KnowledgeBase({ setActiveTab, setShowAddCase, onOpenProf
                   border: 'none', 
                   padding: '10px 18px', 
                   borderRadius: '30px', 
-                  cursor: isActive ? 'pointer' : 'pointer', 
+                  cursor: 'pointer', 
                   fontWeight: 'bold', 
                   textTransform: 'uppercase',
                   letterSpacing: '1px',
@@ -255,23 +193,12 @@ export default function KnowledgeBase({ setActiveTab, setShowAddCase, onOpenProf
             </div>
           );
         })}
-
       </div>
 
       {/* Navigation Arrows */}
       <div style={{ display: 'flex', gap: '20px', zIndex: 100, marginTop: '25px' }}>
-        <button 
-          onClick={prevSlide} 
-          style={{ background: 'rgba(18, 18, 22, 0.8)', border: '1px solid rgba(255,255,255,0.2)', color: '#00ffff', width: '45px', height: '45px', borderRadius: '50%', cursor: 'pointer', fontSize: '1.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s' }}
-        >
-          ‹
-        </button>
-        <button 
-          onClick={nextSlide} 
-          style={{ background: 'rgba(18, 18, 22, 0.8)', border: '1px solid rgba(255,255,255,0.2)', color: '#00ffff', width: '45px', height: '45px', borderRadius: '50%', cursor: 'pointer', fontSize: '1.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s' }}
-        >
-          ›
-        </button>
+        <button onClick={prevSlide} style={{ background: 'rgba(18, 18, 22, 0.8)', border: '1px solid rgba(255,255,255,0.2)', color: '#00ffff', width: '45px', height: '45px', borderRadius: '50%', cursor: 'pointer', fontSize: '1.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>‹</button>
+        <button onClick={nextSlide} style={{ background: 'rgba(18, 18, 22, 0.8)', border: '1px solid rgba(255,255,255,0.2)', color: '#00ffff', width: '45px', height: '45px', borderRadius: '50%', cursor: 'pointer', fontSize: '1.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>›</button>
       </div>
 
     </section>

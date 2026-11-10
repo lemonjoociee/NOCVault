@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 interface LoginViewProps {
-  onLogin: () => void;
+  onLogin: (email: string) => void;
 }
 
 export default function LoginView({ onLogin }: LoginViewProps) {
@@ -21,7 +21,7 @@ export default function LoginView({ onLogin }: LoginViewProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onLogin(); // Triggers the parent loading sequence instantly
+    onLogin(email);
   };
 
   return (
@@ -39,15 +39,7 @@ export default function LoginView({ onLogin }: LoginViewProps) {
         repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255, 255, 255, 0.03) 2px, rgba(255, 255, 255, 0.03) 4px)
       `
     }}>
-      <style>{`
-        @keyframes liveFloat {
-          0% { transform: translateY(0px) translateX(0px); opacity: 0; }
-          20% { opacity: 0.8; }
-          80% { opacity: 0.8; }
-          100% { transform: translateY(-100vh) translateX(50px); opacity: 0; }
-        }
-      `}</style>
-
+      
       {/* LIVE BACKGROUND ANIMATION LAYER */}
       <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 0, overflow: 'hidden' }}>
         {particles.map((p, i) => (
@@ -70,6 +62,15 @@ export default function LoginView({ onLogin }: LoginViewProps) {
         ))}
       </div>
 
+      <style>{`
+        @keyframes liveFloat {
+          0% { transform: translateY(0px) translateX(0px); opacity: 0; }
+          20% { opacity: 0.8; }
+          80% { opacity: 0.8; }
+          100% { transform: translateY(-100vh) translateX(50px); opacity: 0; }
+        }
+      `}</style>
+
       {/* Login Card Container */}
       <div style={{ 
         position: 'relative',
@@ -86,34 +87,30 @@ export default function LoginView({ onLogin }: LoginViewProps) {
       }}>
         
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '15px' }}>
-          <img 
-            src="/images/scicomlogo.png" 
-            alt="Scicom Logo" 
-            style={{ height: '45px', objectFit: 'contain' }} 
-          />
+          <img src="/images/scicomlogo.png" alt="Scicom Logo" style={{ height: '45px', objectFit: 'contain' }} />
         </div>
         
-        <p style={{ color: '#b0b0b0', fontSize: '0.85rem', marginBottom: '30px', letterSpacing: '1px', textTransform: 'uppercase' }}>
-          Scicom Operations Portal
+        <p style={{ color: '#b0b0b0', fontSize: '0.85rem', marginBottom: '25px', letterSpacing: '1px', textTransform: 'uppercase' }}>
+          NOC Operations Portal
         </p>
 
-        <form onSubmit={handleSubmit} style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <form onSubmit={handleSubmit} style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '18px' }}>
           <div>
-            <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px', fontWeight: 'bold' }}>
+            <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px', fontWeight: 'bold' }}>
               Email
             </label>
             <input 
               type="email" 
               required
-              placeholder="Enter your Scicom Email"
+              placeholder="Enter your email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              style={{ width: '100%', padding: '14px 16px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.12)', borderRadius: '12px', color: '#fff', fontSize: '0.9rem', outline: 'none' }}
+              style={{ width: '100%', padding: '12px 16px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.12)', borderRadius: '12px', color: '#fff', fontSize: '0.9rem', outline: 'none' }}
             />
           </div>
 
           <div>
-            <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px', fontWeight: 'bold' }}>
+            <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px', fontWeight: 'bold' }}>
               Password
             </label>
             <input 
@@ -122,7 +119,7 @@ export default function LoginView({ onLogin }: LoginViewProps) {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              style={{ width: '100%', padding: '14px 16px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.12)', borderRadius: '12px', color: '#fff', fontSize: '0.9rem', outline: 'none' }}
+              style={{ width: '100%', padding: '12px 16px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.12)', borderRadius: '12px', color: '#fff', fontSize: '0.9rem', outline: 'none' }}
             />
           </div>
 

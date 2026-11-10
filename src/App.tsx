@@ -11,12 +11,17 @@ import { ThemeProvider } from './context/ThemeContext';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState<'Admin' | 'NOC'>('Admin'); // Default or login-selected role
   const [isLoading, setIsLoading] = useState(false);
   const [isFadingOut, setIsFadingOut] = useState(false);
   
   const [activeTab, setActiveTab] = useState('home');
 
-  const handleLoginTrigger = () => {
+  const handleLoginTrigger = (email: string) => {
+    // Automatically assign Admin role if email contains 'admin' or 'manager', otherwise NOC
+    const assignedRole = email.toLowerCase().includes('admin') || email.toLowerCase().includes('manager') ? 'Admin' : 'NOC';
+    setUserRole(assignedRole);
+
     setIsLoading(true);
     setIsFadingOut(false);
     setIsAuthenticated(true);
@@ -38,6 +43,7 @@ export default function App() {
         <PageLayout>
           {activeTab === 'home' && (
             <KnowledgeBase 
+              userRole={userRole}
               setActiveTab={setActiveTab} 
               onOpenAddCase={() => setActiveTab('addcase')}
               onOpenProfile={() => setActiveTab('profile')}
@@ -66,7 +72,8 @@ export default function App() {
             <EscalationMatrix onBack={() => setActiveTab('home')} />
           )}
 
-          {activeTab === 'admin' && (
+          {/* Restrict Admin Console route if user is NOC */}
+          {activeTab === 'admin' && userRole === 'Admin' && (
             <AdminMemberManager onBack={() => setActiveTab('home')} />
           )}
         </PageLayout>
