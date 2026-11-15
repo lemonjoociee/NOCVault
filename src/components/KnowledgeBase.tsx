@@ -15,7 +15,7 @@ export default function KnowledgeBase({ userRole, customIncidents, setActiveTab,
   const allCards = [
     {
       id: 'knowledge',
-      title: 'Knowledge Base',
+      title: 'KNOWLEDGE BASE',
       desc: `Access official runbooks, guides, and NOC documentation. (${customIncidents.length} active tickets logged)`,
       tags: ['RUNBOOKS', 'GUIDES'],
       action: () => setActiveTab('documents'),
@@ -24,7 +24,7 @@ export default function KnowledgeBase({ userRole, customIncidents, setActiveTab,
     },
     {
       id: 'escalation',
-      title: 'Escalation Matrix',
+      title: 'ESCALATION MATRIX',
       desc: 'View contact protocols, SLAs, and escalation paths for critical incidents.',
       tags: ['SLA', 'TIER L1-L3'],
       action: () => setActiveTab('escalation'),
@@ -33,7 +33,7 @@ export default function KnowledgeBase({ userRole, customIncidents, setActiveTab,
     },
     {
       id: 'admin',
-      title: 'Admin Console',
+      title: 'ADMIN CONSOLE',
       desc: 'Manage NOC personnel, role assignments, and system access permissions.',
       tags: ['ROLES', 'SECURITY'],
       action: () => setActiveTab('admin'),
@@ -43,7 +43,7 @@ export default function KnowledgeBase({ userRole, customIncidents, setActiveTab,
     },
     {
       id: 'addcase',
-      title: 'New Incident',
+      title: 'NEW INCIDENT',
       desc: 'Log a new incident ticket, assign severity, and document initial troubleshooting.',
       tags: ['INCIDENT', 'TICKET'],
       action: onOpenAddCase,
@@ -70,6 +70,28 @@ export default function KnowledgeBase({ userRole, customIncidents, setActiveTab,
       perspective: '1400px'
     }}>
       
+      {/* GREY SUBTLE BACKGROUND SCANNING LINE */}
+      <style>{`
+        @keyframes scanDown {
+          0% { top: 0%; opacity: 0; }
+          15% { opacity: 0.6; }
+          85% { opacity: 0.6; }
+          100% { top: 100%; opacity: 0; }
+        }
+
+        .scanner-line {
+          position: absolute;
+          left: 0;
+          width: 100%;
+          height: 2px;
+          background: linear-gradient(90deg, transparent, rgba(160, 160, 160, 0.4), rgba(200, 200, 200, 0.7), rgba(160, 160, 160, 0.4), transparent);
+          box-shadow: 0 0 10px rgba(150, 150, 150, 0.2);
+          pointer-events: none;
+          animation: scanDown 3s ease-in-out infinite;
+          z-index: 1; /* Behind card content */
+        }
+      `}</style>
+
       {/* Upper-Right Buttons */}
       <div style={{ position: 'absolute', top: '25px', right: '35px', display: 'flex', gap: '12px', zIndex: 1000 }}>
         <span style={{ padding: '8px 14px', borderRadius: '20px', background: 'rgba(0,255,255,0.1)', border: '1px solid #00ffff', color: '#00ffff', fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
@@ -138,7 +160,7 @@ export default function KnowledgeBase({ userRole, customIncidents, setActiveTab,
                 width: '320px',
                 height: '450px',
                 backgroundColor: 'rgba(18, 18, 22, 0.95)',
-                border: isActive ? '1px solid rgba(0, 255, 255, 0.4)' : '1px solid rgba(255, 255, 255, 0.08)',
+                border: isActive ? '1px solid rgba(0, 255, 255, 0.6)' : '1px solid rgba(255, 255, 255, 0.08)',
                 borderRadius: '20px',
                 padding: '22px',
                 display: 'flex',
@@ -147,49 +169,56 @@ export default function KnowledgeBase({ userRole, customIncidents, setActiveTab,
                 transform: `translateX(${translateX}px) translateZ(${translateZ}px) rotateY(${rotateY}deg) scale(${scale})`,
                 opacity: opacity,
                 zIndex: zIndex,
-                boxShadow: isActive ? '0 20px 50px rgba(0, 255, 255, 0.2)' : '0 10px 30px rgba(0,0,0,0.8)',
-                cursor: isActive ? 'default' : 'pointer'
+                boxShadow: isActive ? '0 20px 50px rgba(0, 255, 255, 0.3)' : '0 10px 30px rgba(0,0,0,0.8)',
+                cursor: isActive ? 'default' : 'pointer',
+                overflow: 'hidden'
               }}
             >
-              <img 
-                src={card.image} 
-                alt={card.title} 
-                style={{ width: '100%', height: '130px', backgroundColor: '#ffffff', objectFit: 'contain', padding: '12px', borderRadius: '12px', marginBottom: '15px', border: '1px solid rgba(255,255,255,0.1)' }} 
-              />
-              
-              <h3 style={{ color: '#fff', fontSize: '1.3rem', marginBottom: '8px', letterSpacing: '1px' }}>{card.title}</h3>
-              <p style={{ color: '#b0b0b0', fontSize: '0.8rem', marginBottom: '15px', lineHeight: '1.4' }}>{card.desc}</p>
-              
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '15px' }}>
-                {card.tags.map(tag => (
-                  <span key={tag} style={{ border: '1px solid #9945ff', color: '#9945ff', padding: '3px 8px', borderRadius: '20px', fontSize: '0.6rem', letterSpacing: '1px' }}>
-                    {tag}
-                  </span>
-                ))}
-              </div>
+              {/* Subtle Grey Scanning Line (Positioned behind content via zIndex) */}
+              {isActive && <div className="scanner-line" />}
 
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (isActive) card.action();
-                }}
-                style={{ 
-                  background: isActive ? 'linear-gradient(90deg, #8a2be2, #00ffff)' : 'rgba(255,255,255,0.05)', 
-                  color: '#fff', 
-                  border: 'none', 
-                  padding: '10px 18px', 
-                  borderRadius: '30px', 
-                  cursor: 'pointer', 
-                  fontWeight: 'bold', 
-                  textTransform: 'uppercase',
-                  letterSpacing: '1px',
-                  fontSize: '0.8rem',
-                  marginTop: 'auto',
-                  boxShadow: isActive ? '0 5px 15px rgba(138, 43, 226, 0.4)' : 'none'
-                }}
-              >
-                {card.btnText}
-              </button>
+              {/* Card Content (z-index 2 ensures it stays above the scanning line) */}
+              <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', height: '100%' }}>
+                <img 
+                  src={card.image} 
+                  alt={card.title} 
+                  style={{ width: '100%', height: '130px', backgroundColor: '#ffffff', objectFit: 'contain', padding: '12px', borderRadius: '12px', marginBottom: '15px', border: '1px solid rgba(255,255,255,0.1)' }} 
+                />
+                
+                <h3 style={{ color: '#fff', fontSize: '1.3rem', marginBottom: '8px', letterSpacing: '1px' }}>{card.title}</h3>
+                <p style={{ color: '#b0b0b0', fontSize: '0.8rem', marginBottom: '15px', lineHeight: '1.4' }}>{card.desc}</p>
+                
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '15px' }}>
+                  {card.tags.map(tag => (
+                    <span key={tag} style={{ border: '1px solid #9945ff', color: '#9945ff', padding: '3px 8px', borderRadius: '20px', fontSize: '0.6rem', letterSpacing: '1px' }}>
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isActive) card.action();
+                  }}
+                  style={{ 
+                    background: isActive ? 'linear-gradient(90deg, #8a2be2, #00ffff)' : 'rgba(255,255,255,0.05)', 
+                    color: '#fff', 
+                    border: 'none', 
+                    padding: '10px 18px', 
+                    borderRadius: '30px', 
+                    cursor: 'pointer', 
+                    fontWeight: 'bold', 
+                    textTransform: 'uppercase',
+                    letterSpacing: '1px',
+                    fontSize: '0.8rem',
+                    marginTop: 'auto',
+                    boxShadow: isActive ? '0 5px 15px rgba(138, 43, 226, 0.4)' : 'none'
+                  }}
+                >
+                  {card.btnText}
+                </button>
+              </div>
             </div>
           );
         })}

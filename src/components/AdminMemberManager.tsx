@@ -36,6 +36,7 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
     setFormName(member.name);
     setFormEmail(member.email || '');
     setFormRole(member.role === 'Admin' ? 'Admin' : 'NOC');
+    setFormTempPassword(''); // Default blank for reset option
     setFormStatus(member.status);
   };
 
@@ -69,7 +70,8 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
     } : m));
     setEditingMember(null);
 
-    setToastMessage(`Member ${formName} updated successfully.`);
+    const resetNote = formTempPassword ? ' (Password Reset Applied)' : '';
+    setToastMessage(`Member ${formName} updated successfully${resetNote}.`);
     setTimeout(() => setToastMessage(''), 3000);
   };
 
@@ -148,7 +150,7 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
                     onClick={() => handleOpenEdit(member)}
                     style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', padding: '6px 14px', borderRadius: '15px', cursor: 'pointer', marginRight: '8px', fontSize: '0.8rem' }}
                   >
-                    Edit
+                    Edit / Reset Password
                   </button>
                   <button 
                     onClick={() => handleRemove(member.id)}
@@ -198,7 +200,7 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
               </form>
             </div>
 
-            {/* Right Column: Live Email Invitation Preview including Temporary Password */}
+            {/* Right Column: Live Email Invitation Preview */}
             <div style={{ backgroundColor: '#1a1a22', border: '1px dashed rgba(0,255,255,0.3)', borderRadius: '14px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#00ffff', letterSpacing: '1px', fontWeight: 'bold', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '8px' }}>
                 📄 Invitation Email Preview
@@ -229,11 +231,11 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
         </div>
       )}
 
-      {/* EDIT MEMBER MODAL */}
+      {/* EDIT MEMBER & RESET PASSWORD MODAL */}
       {editingMember && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ width: '420px', backgroundColor: '#121216', border: '1px solid rgba(0,255,255,0.3)', borderRadius: '20px', padding: '30px', boxShadow: '0 20px 50px rgba(0,0,0,0.9)' }}>
-            <h2 style={{ fontSize: '1.2rem', marginBottom: '20px', color: '#00ffff' }}>Edit Team Member</h2>
+            <h2 style={{ fontSize: '1.2rem', marginBottom: '20px', color: '#00ffff' }}>Edit Team Member & Reset Password</h2>
             <form onSubmit={handleSaveEdit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               <div>
                 <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', marginBottom: '6px', textTransform: 'uppercase' }}>Full Name</label>
@@ -242,6 +244,11 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
               <div>
                 <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', marginBottom: '6px', textTransform: 'uppercase' }}>Email Address</label>
                 <input type="email" required value={formEmail} onChange={(e) => setFormEmail(e.target.value)} style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', color: '#fff', outline: 'none' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', color: '#00ffff', fontSize: '0.75rem', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 'bold' }}>Reset Password (Optional)</label>
+                <input type="text" placeholder="Leave blank to keep current password" value={formTempPassword} onChange={(e) => setFormTempPassword(e.target.value)} style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(0,255,255,0.3)', borderRadius: '10px', color: '#00ffff', fontFamily: 'monospace', outline: 'none' }} />
+                <span style={{ fontSize: '0.7rem', color: '#888', marginTop: '4px', display: 'block' }}>* Type a new temporary password if user requested a reset.</span>
               </div>
               <div>
                 <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', marginBottom: '6px', textTransform: 'uppercase' }}>System Role</label>
