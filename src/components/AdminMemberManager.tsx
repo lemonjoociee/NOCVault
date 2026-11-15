@@ -5,6 +5,9 @@ interface AdminMemberManagerProps {
 }
 
 export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) {
+  // Your designated sender Scicom email
+  const adminSenderEmail = 'izzul.azhar@scicom.com.my';
+
   const [members, setMembers] = useState([
     { id: 1, name: 'Sabbir', email: 'sabbir@scicom.com.my', role: 'NOC', status: 'Active' },
     { id: 2, name: 'NOC Manager', email: 'manager@scicom.com.my', role: 'Admin', status: 'Active' },
@@ -55,7 +58,7 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
     setMembers([...members, newMember]);
     setShowAddModal(false);
 
-    setToastMessage(`Invitation email with temporary password sent to ${formEmail}!`);
+    setToastMessage(`Invitation email sent from ${adminSenderEmail} to ${formEmail}!`);
     setTimeout(() => setToastMessage(''), 4000);
   };
 
@@ -206,6 +209,9 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
                 📄 Invitation Email Preview
               </div>
               <div style={{ fontSize: '0.8rem', color: '#b0b0b0' }}>
+                <strong>From:</strong> {adminSenderEmail}
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#b0b0b0' }}>
                 <strong>To:</strong> {formEmail || 'recipient@scicom.com.my'}
               </div>
               <div style={{ fontSize: '0.8rem', color: '#b0b0b0', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '8px' }}>
@@ -213,7 +219,7 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
               </div>
               <div style={{ backgroundColor: 'rgba(18,18,22,0.8)', padding: '15px', borderRadius: '10px', fontSize: '0.85rem', color: '#e0e0e0', lineHeight: '1.5', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <p style={{ margin: 0 }}>Hello <strong>{formName || '[Full Name]'}</strong>,</p>
-                <p style={{ margin: 0 }}>You have been invited to join the <strong>Scicom Operations Portal</strong> as a <strong>{formRole}</strong> user.</p>
+                <p style={{ margin: 0 }}>You have been invited by <strong>{adminSenderEmail}</strong> to join the <strong>Scicom Operations Portal</strong> as a <strong>{formRole}</strong> user.</p>
                 <div style={{ backgroundColor: 'rgba(0,255,255,0.08)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(0,255,255,0.2)' }}>
                   <div style={{ fontSize: '0.75rem', color: '#00ffff', textTransform: 'uppercase', marginBottom: '2px' }}>Temporary Password:</div>
                   <div style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#fff' }}>{formTempPassword}</div>
