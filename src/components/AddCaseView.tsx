@@ -12,7 +12,7 @@ export default function AddCaseView({ onBack, onCaseCreated }: AddCaseViewProps)
   const [severity, setSeverity] = useState('SEV-2 (High)');
   const [impact, setImpact] = useState('');
   const [summary, setSummary] = useState('');
-  const [steps, setSteps] = useState(['', '']);
+  const [steps, setSteps] = useState<string[]>(['']);
 
   const handleStepChange = (index: number, value: string) => {
     const updated = [...steps];
@@ -39,27 +39,26 @@ export default function AddCaseView({ onBack, onCaseCreated }: AddCaseViewProps)
       category,
       severity,
       impact: impact || 'Standard operational disruption reported.',
-      summary: summary || title,
+      summary: summary || 'No additional summary provided.',
       steps: steps.filter(s => s.trim() !== '')
     };
 
     onCaseCreated(newIncident);
-    alert('Incident ticket successfully created and logged into Knowledge Base!');
+    alert('Incident Ticket Successfully Created and Logged into Knowledge Base!');
     onBack();
   };
 
   return (
     <div style={{ minHeight: '100vh', padding: '40px 20px', color: '#fff', position: 'relative', zIndex: 10 }}>
-      
       {/* Header Bar */}
-      <div style={{ maxWidth: '900px', margin: '0 auto 30px auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ maxWidth: '800px', margin: '0 auto 30px auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 style={{ fontSize: '1.8rem', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '5px' }}>
             <span style={{ color: '#00ffff' }}>Create New</span> Incident Ticket
           </h1>
           <p style={{ color: '#b0b0b0', fontSize: '0.9rem' }}>Log detailed issue diagnostics, affected projects, and step-by-step resolution workflows.</p>
         </div>
-        <button 
+        <button
           onClick={onBack}
           style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', padding: '10px 20px', borderRadius: '30px', cursor: 'pointer', fontWeight: 'bold' }}
         >
@@ -68,46 +67,44 @@ export default function AddCaseView({ onBack, onCaseCreated }: AddCaseViewProps)
       </div>
 
       {/* Form Container */}
-      <div style={{ maxWidth: '900px', margin: '0 auto', backgroundColor: 'rgba(18, 18, 22, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', padding: '35px', boxShadow: '0 20px 50px rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)' }}>
+      <div style={{ maxWidth: '800px', margin: '0 auto', backgroundColor: 'rgba(18, 18, 22, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', padding: '35px', boxShadow: '0 20px 50px rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)' }}>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          
           <div>
-            <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px', fontWeight: 'bold' }}>
-              Incident Title
+            <label style={{ display: 'block', color: '#00ffff', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px', fontWeight: 'bold' }}>
+              Incident Title *
             </label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               required
-              placeholder="e.g. GP Dynamics Gateway Timeout"
+              placeholder="e.g. IP Dynamics Gateway Timeout"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              style={{ width: '100%', padding: '14px 16px', backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '12px', color: '#fff', fontSize: '0.95rem', outline: 'none' }}
+              style={{ width: '100%', padding: '14px 16px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '12px', color: '#fff', fontSize: '0.95rem', outline: 'none' }}
             />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
             <div>
-              <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px', fontWeight: 'bold' }}>
+              <label style={{ display: 'block', color: '#00ffff', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px', fontWeight: 'bold' }}>
                 Affected Project
               </label>
-              <input 
-                type="text" 
-                required
+              <input
+                type="text"
                 placeholder="e.g. Telekom Malaysia (TM) Project Operations"
                 value={project}
                 onChange={(e) => setProject(e.target.value)}
-                style={{ width: '100%', padding: '14px 16px', backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '12px', color: '#fff', fontSize: '0.95rem', outline: 'none' }}
+                style={{ width: '100%', padding: '14px 16px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '12px', color: '#fff', fontSize: '0.95rem', outline: 'none' }}
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px', fontWeight: 'bold' }}>
+              <label style={{ display: 'block', color: '#00ffff', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px', fontWeight: 'bold' }}>
                 Severity Level
               </label>
-              <select 
+              <select
                 value={severity}
                 onChange={(e) => setSeverity(e.target.value)}
-                style={{ width: '100%', padding: '14px 16px', backgroundColor: '#121216', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '12px', color: '#fff', fontSize: '0.9rem', outline: 'none' }}
+                style={{ width: '100%', padding: '14px 16px', background: '#121216', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '12px', color: '#fff', fontSize: '0.95rem', outline: 'none' }}
               >
                 <option value="SEV-1 (Critical)">SEV-1 (Critical)</option>
                 <option value="SEV-2 (High)">SEV-2 (High)</option>
@@ -118,75 +115,75 @@ export default function AddCaseView({ onBack, onCaseCreated }: AddCaseViewProps)
           </div>
 
           <div>
-            <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px', fontWeight: 'bold' }}>
+            <label style={{ display: 'block', color: '#00ffff', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px', fontWeight: 'bold' }}>
               Category
             </label>
-            <input 
-              type="text" 
-              placeholder="e.g. Application Error, VoIP / Telephony, Infrastructure"
+            <input
+              type="text"
+              placeholder="e.g. Application Error, VoIP / Telephony, Network Outage"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              style={{ width: '100%', padding: '14px 16px', backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '12px', color: '#fff', fontSize: '0.95rem', outline: 'none' }}
+              style={{ width: '100%', padding: '14px 16px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '12px', color: '#fff', fontSize: '0.95rem', outline: 'none' }}
             />
           </div>
 
           <div>
-            <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px', fontWeight: 'bold' }}>
-              Business Impact Description
+            <label style={{ display: 'block', color: '#00ffff', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px', fontWeight: 'bold' }}>
+              System Impact Description
             </label>
-            <textarea 
+            <textarea
               rows={2}
-              placeholder="Describe what modules or agents are impacted..."
+              placeholder="Describe what services or agents are impacted..."
               value={impact}
               onChange={(e) => setImpact(e.target.value)}
-              style={{ width: '100%', padding: '14px 16px', backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '12px', color: '#fff', fontSize: '0.95rem', outline: 'none', resize: 'vertical' }}
+              style={{ width: '100%', padding: '14px 16px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '12px', color: '#fff', fontSize: '0.95rem', outline: 'none', resize: 'vertical' }}
             />
           </div>
 
           <div>
-            <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px', fontWeight: 'bold' }}>
-              Issue Summary
+            <label style={{ display: 'block', color: '#00ffff', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px', fontWeight: 'bold' }}>
+              Executive Summary
             </label>
-            <textarea 
+            <textarea
               rows={3}
               placeholder="Brief summary of the root cause or symptoms..."
               value={summary}
               onChange={(e) => setSummary(e.target.value)}
-              style={{ width: '100%', padding: '14px 16px', backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '12px', color: '#fff', fontSize: '0.95rem', outline: 'none', resize: 'vertical' }}
+              style={{ width: '100%', padding: '14px 16px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '12px', color: '#fff', fontSize: '0.95rem', outline: 'none', resize: 'vertical' }}
             />
           </div>
 
           {/* Dynamic Step-by-Step Troubleshooting Workflow */}
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <label style={{ color: '#00ffff', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <label style={{ color: '#00ffff', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>
                 Step-by-Step Resolution Workflow
               </label>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={addStepField}
-                style={{ background: 'rgba(0,255,255,0.1)', border: '1px solid rgba(0,255,255,0.3)', color: '#00ffff', padding: '4px 12px', borderRadius: '10px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold' }}
+                style={{ background: 'rgba(0, 255, 255, 0.1)', border: '1px solid rgba(0, 255, 255, 0.3)', color: '#00ffff', padding: '6px 14px', borderRadius: '15px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold' }}
               >
                 + Add Step
               </button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {steps.map((step, idx) => (
-                <div key={idx} style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                  <span style={{ color: '#aaa', fontSize: '0.85rem', width: '25px' }}>{idx + 1}.</span>
-                  <input 
-                    type="text" 
-                    placeholder={`Enter troubleshooting step ${idx + 1}...`}
+              {steps.map((step, index) => (
+                <div key={index} style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <span style={{ color: '#888', fontSize: '0.85rem', width: '25px' }}>{index + 1}.</span>
+                  <input
+                    type="text"
+                    placeholder={`Enter troubleshooting step ${index + 1}...`}
                     value={step}
-                    onChange={(e) => handleStepChange(idx, e.target.value)}
-                    style={{ flex: 1, padding: '12px 16px', backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', color: '#fff', fontSize: '0.9rem', outline: 'none' }}
+                    onChange={(e) => handleStepChange(index, e.target.value)}
+                    style={{ flex: 1, padding: '12px 14px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', color: '#fff', fontSize: '0.9rem', outline: 'none' }}
                   />
                   {steps.length > 1 && (
-                    <button 
-                      type="button" 
-                      onClick={() => removeStepField(idx)}
-                      style={{ background: 'rgba(255,51,51,0.15)', border: '1px solid rgba(255,51,51,0.4)', color: '#ff3333', padding: '10px 14px', borderRadius: '10px', cursor: 'pointer', fontSize: '0.8rem' }}
+                    <button
+                      type="button"
+                      onClick={() => removeStepField(index)}
+                      style={{ background: 'rgba(255, 51, 51, 0.15)', border: '1px solid rgba(255, 51, 51, 0.4)', color: '#ff3333', padding: '10px 14px', borderRadius: '10px', cursor: 'pointer', fontSize: '0.8rem' }}
                     >
                       ✕
                     </button>
@@ -196,25 +193,23 @@ export default function AddCaseView({ onBack, onCaseCreated }: AddCaseViewProps)
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '15px', marginTop: '20px' }}>
-            <button 
+          <div style={{ display: 'flex', gap: '15px', marginTop: '15px' }}>
+            <button
               type="submit"
-              style={{ flex: 1, padding: '14px', background: 'linear-gradient(90deg, #8a2be2, #00ffff)', border: 'none', borderRadius: '30px', color: '#fff', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 5px 20px rgba(138,43,226,0.4)' }}
+              style={{ flex: 2, padding: '15px', background: 'linear-gradient(90deg, #8a2be2, #00ffff)', border: 'none', borderRadius: '30px', color: '#fff', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 8px 25px rgba(138, 43, 226, 0.4)' }}
             >
               Save Incident & Publish Runbook
             </button>
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={onBack}
-              style={{ padding: '14px 30px', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '30px', color: '#fff', cursor: 'pointer', fontWeight: 'bold' }}
+              style={{ padding: '15px 30px', background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: '30px', color: '#fff', cursor: 'pointer', fontWeight: 'bold' }}
             >
               Cancel
             </button>
           </div>
-
         </form>
       </div>
-
     </div>
   );
 }

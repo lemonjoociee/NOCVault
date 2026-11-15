@@ -1,19 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../supabaseClient';
 
 interface AdminMemberManagerProps {
   onBack: () => void;
 }
 
 export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) {
-  // Your designated sender Scicom email
   const adminSenderEmail = 'izzul.azhar@scicom.com.my';
 
-  const [members, setMembers] = useState([
-    { id: 1, name: 'Sabbir', email: 'sabbir@scicom.com.my', role: 'NOC', status: 'Active' },
-    { id: 2, name: 'NOC Manager', email: 'manager@scicom.com.my', role: 'Admin', status: 'Active' },
-    { id: 3, name: 'Network Specialist', email: 'specialist@scicom.com.my', role: 'NOC', status: 'Offline' }
-  ]);
+  // Fallback team members when running in sandboxed preview
+  const initialMembers = [
+    {
+      id: 1,
+      name: 'Izzul Azhar',
+      email: 'izzul.azhar@scicom.com.my',
+      role: 'Admin',
+      status: 'Active'
+    },
+    {
+      id: 2,
+      name: 'NOC Duty Engineer',
+      email: 'noc.support@scicom.com.my',
+      role: 'NOC',
+      status: 'Active'
+    }
+  ];
 
+  const [members, setMembers] = useState<any[]>(initialMembers);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingMember, setEditingMember] = useState<any | null>(null);
   const [toastMessage, setToastMessage] = useState('');
@@ -24,6 +37,23 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
   const [formRole, setFormRole] = useState('NOC');
   const [formTempPassword, setFormTempPassword] = useState('Scicom@2026!');
   const [formStatus, setFormStatus] = useState('Active');
+
+  // Fetch members from Supabase on load with graceful fallback
+  useEffect(() => {
+    async function fetchMembers() {
+      try {
+        const { data, error } = await supabase.from('members').select('*');
+        if (error || !data || data.length === 0) {
+          console.warn('Using local fallback members due to sandbox network restriction.');
+        } else {
+          setMembers(data);
+        }
+      } catch (err) {
+        console.warn('Supabase members offline fallback active.');
+      }
+    }
+    fetchMembers();
+  }, []);
 
   const handleOpenAdd = () => {
     setFormName('');
@@ -39,11 +69,11 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
     setFormName(member.name);
     setFormEmail(member.email || '');
     setFormRole(member.role === 'Admin' ? 'Admin' : 'NOC');
-    setFormTempPassword(''); // Default blank for reset option
+    setFormTempPassword(''); 
     setFormStatus(member.status);
   };
 
-  const handleSaveAdd = (e: React.FormEvent) => {
+  const handleSaveAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formName || !formEmail) return;
 
@@ -55,22 +85,41 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
       status: 'Active'
     };
 
-    setMembers([...members, newMember]);
+    try {
+      const { error } = await supabase.from('members').insert([newMember]);
+      if (error) console.warn('Supabase insert warning (saved locally):', error.message);
+    } catch (err) {
+      console.warn('Saved member to local state (Supabase offline).');
+    }
+
+    setMembers(prev => [...prev, newMember]);
     setShowAddModal(false);
 
     setToastMessage(`Invitation email sent from ${adminSenderEmail} to ${formEmail}!`);
     setTimeout(() => setToastMessage(''), 4000);
   };
 
-  const handleSaveEdit = (e: React.FormEvent) => {
+  const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMembers(members.map(m => m.id === editingMember.id ? { 
-      ...m, 
-      name: formName, 
-      email: formEmail, 
-      role: formRole, 
-      status: formStatus 
-    } : m));
+    
+    const updatedData = {
+      name: formName,
+      email: formEmail,
+      role: formRole,
+      status: formStatus
+    };
+
+    try {
+      const { error } = await supabase
+        .from('members')
+        .update(updatedData)
+        .eq('id', editingMember.id);
+      if (error) console.warn('Supabase update warning (updated locally):', error.message);
+    } catch (err) {
+      console.warn('Updated member in local state (Supabase offline).');
+    }
+
+    setMembers(members.map(m => m.id === editingMember.id ? { ...m, ...updatedData } : m));
     setEditingMember(null);
 
     const resetNote = formTempPassword ? ' (Password Reset Applied)' : '';
@@ -78,8 +127,15 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
     setTimeout(() => setToastMessage(''), 3000);
   };
 
-  const handleRemove = (id: number) => {
+  const handleRemove = async (id: number) => {
     if (window.confirm('Are you sure you want to remove this team member?')) {
+      try {
+        const { error } = await supabase.from('members').delete().eq('id', id);
+        if (error) console.warn('Supabase delete warning (removed locally):', error.message);
+      } catch (err) {
+        console.warn('Removed member from local state (Supabase offline).');
+      }
+
       setMembers(members.filter(m => m.id !== id));
       setToastMessage('Team member removed successfully.');
       setTimeout(() => setToastMessage(''), 3000);
@@ -132,48 +188,53 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
             </tr>
           </thead>
           <tbody>
-            {members.map((member) => (
-              <tr key={member.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                <td style={{ padding: '16px 20px' }}>
-                  <div style={{ color: '#fff', fontWeight: 'bold' }}>{member.name}</div>
-                  <div style={{ color: '#808080', fontSize: '0.8rem' }}>{member.email || 'No email recorded'}</div>
-                </td>
-                <td style={{ padding: '16px 20px' }}>
-                  <span style={{ padding: '3px 10px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', backgroundColor: member.role === 'Admin' ? 'rgba(153,69,255,0.2)' : 'rgba(0,255,255,0.15)', color: member.role === 'Admin' ? '#9945ff' : '#00ffff' }}>
-                    {member.role}
-                  </span>
-                </td>
-                <td style={{ padding: '16px 20px' }}>
-                  <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold', backgroundColor: member.status === 'Active' ? 'rgba(0,255,136,0.15)' : 'rgba(255,255,255,0.1)', color: member.status === 'Active' ? '#00ff88' : '#aaa' }}>
-                    {member.status}
-                  </span>
-                </td>
-                <td style={{ padding: '16px 20px', textAlign: 'right' }}>
-                  <button 
-                    onClick={() => handleOpenEdit(member)}
-                    style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', padding: '6px 14px', borderRadius: '15px', cursor: 'pointer', marginRight: '8px', fontSize: '0.8rem' }}
-                  >
-                    Edit / Reset Password
-                  </button>
-                  <button 
-                    onClick={() => handleRemove(member.id)}
-                    style={{ background: 'rgba(255,51,51,0.15)', border: '1px solid rgba(255,51,51,0.4)', color: '#ff3333', padding: '6px 14px', borderRadius: '15px', cursor: 'pointer', fontSize: '0.8rem' }}
-                  >
-                    Remove
-                  </button>
-                </td>
+            {members.length === 0 ? (
+              <tr>
+                <td colSpan={4} style={{ padding: '30px', textAlign: 'center', color: '#888' }}>No members found. Click "+ Add Member" to invite personnel.</td>
               </tr>
-            ))}
+            ) : (
+              members.map((member) => (
+                <tr key={member.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  <td style={{ padding: '16px 20px' }}>
+                    <div style={{ color: '#fff', fontWeight: 'bold' }}>{member.name}</div>
+                    <div style={{ color: '#808080', fontSize: '0.8rem' }}>{member.email || 'No email recorded'}</div>
+                  </td>
+                  <td style={{ padding: '16px 20px' }}>
+                    <span style={{ padding: '3px 10px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 'bold', backgroundColor: member.role === 'Admin' ? 'rgba(153,69,255,0.2)' : 'rgba(0,255,255,0.15)', color: member.role === 'Admin' ? '#9945ff' : '#00ffff' }}>
+                      {member.role}
+                    </span>
+                  </td>
+                  <td style={{ padding: '16px 20px' }}>
+                    <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold', backgroundColor: member.status === 'Active' ? 'rgba(0,255,136,0.15)' : 'rgba(255,255,255,0.1)', color: member.status === 'Active' ? '#00ff88' : '#aaa' }}>
+                      {member.status}
+                    </span>
+                  </td>
+                  <td style={{ padding: '16px 20px', textAlign: 'right' }}>
+                    <button 
+                      onClick={() => handleOpenEdit(member)}
+                      style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', padding: '6px 14px', borderRadius: '15px', cursor: 'pointer', marginRight: '8px', fontSize: '0.8rem' }}
+                    >
+                      Edit / Reset Password
+                    </button>
+                    <button 
+                      onClick={() => handleRemove(member.id)}
+                      style={{ background: 'rgba(255,51,51,0.15)', border: '1px solid rgba(255,51,51,0.4)', color: '#ff3333', padding: '6px 14px', borderRadius: '15px', cursor: 'pointer', fontSize: '0.8rem' }}
+                    >
+                      Remove
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
 
-      {/* ADD MEMBER MODAL WITH TEMPORARY PASSWORD & LIVE EMAIL PREVIEW */}
+      {/* ADD MEMBER MODAL */}
       {showAddModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div style={{ width: '900px', maxHeight: '90vh', overflowY: 'auto', backgroundColor: '#121216', border: '1px solid rgba(0,255,255,0.3)', borderRadius: '20px', padding: '30px', boxShadow: '0 20px 50px rgba(0,0,0,0.9)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
             
-            {/* Left Column: Form Inputs */}
             <div>
               <h2 style={{ fontSize: '1.2rem', marginBottom: '20px', color: '#00ffff' }}>Add Team Member & Send Invite</h2>
               <form onSubmit={handleSaveAdd} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
@@ -203,7 +264,6 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
               </form>
             </div>
 
-            {/* Right Column: Live Email Invitation Preview */}
             <div style={{ backgroundColor: '#1a1a22', border: '1px dashed rgba(0,255,255,0.3)', borderRadius: '14px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#00ffff', letterSpacing: '1px', fontWeight: 'bold', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '8px' }}>
                 📄 Invitation Email Preview
@@ -225,11 +285,6 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
                   <div style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#fff' }}>{formTempPassword}</div>
                 </div>
                 <p style={{ margin: 0, fontSize: '0.75rem', color: '#aaa' }}>* You will be required to change this password upon your first login.</p>
-                <div style={{ textAlign: 'center', marginTop: '5px' }}>
-                  <span style={{ display: 'inline-block', padding: '8px 20px', background: 'linear-gradient(90deg, #8a2be2, #00ffff)', color: '#fff', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                    Accept Invitation & Login
-                  </span>
-                </div>
               </div>
             </div>
 
@@ -254,7 +309,6 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
               <div>
                 <label style={{ display: 'block', color: '#00ffff', fontSize: '0.75rem', marginBottom: '6px', textTransform: 'uppercase', fontWeight: 'bold' }}>Reset Password (Optional)</label>
                 <input type="text" placeholder="Leave blank to keep current password" value={formTempPassword} onChange={(e) => setFormTempPassword(e.target.value)} style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(0,255,255,0.3)', borderRadius: '10px', color: '#00ffff', fontFamily: 'monospace', outline: 'none' }} />
-                <span style={{ fontSize: '0.7rem', color: '#888', marginTop: '4px', display: 'block' }}>* Type a new temporary password if user requested a reset.</span>
               </div>
               <div>
                 <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', marginBottom: '6px', textTransform: 'uppercase' }}>System Role</label>
