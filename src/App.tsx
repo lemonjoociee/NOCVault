@@ -35,7 +35,7 @@ export default function App() {
     }
   ]);
 
-  const handleLoginTrigger = (email: string) => {
+  const handleLoginTrigger = (email: string, password?: string) => {
     const assignedRole = email.toLowerCase().includes('admin') || email.toLowerCase().includes('manager') ? 'Admin' : 'NOC';
     setUserRole(assignedRole);
 
@@ -43,8 +43,13 @@ export default function App() {
     setIsFadingOut(false);
     setIsAuthenticated(true);
 
-    setTimeout(() => { setIsFadingOut(true); }, 1200);
-    setTimeout(() => { setIsLoading(false); }, 1700);
+    setTimeout(() => {
+      setIsFadingOut(true);
+    }, 1200);
+
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 1700);
   };
 
   return (
@@ -99,9 +104,20 @@ export default function App() {
       {/* Global Loading Overlay */}
       {isLoading && (
         <div style={{
-          position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', background: '#0a0a0a',
-          display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 999999, flexDirection: 'column',
-          opacity: isFadingOut ? 0 : 1, transition: 'opacity 0.5s ease-in-out', pointerEvents: isFadingOut ? 'none' : 'auto'
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100vh',
+          background: '#0a0a0a',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 999999,
+          flexDirection: 'column',
+          opacity: isFadingOut ? 0 : 1,
+          transition: 'opacity 0.5s ease-in-out',
+          pointerEvents: isFadingOut ? 'none' : 'auto'
         }}>
           <div className="loader-prism" style={{ width: '100px', height: '100px', position: 'relative', margin: '0 auto 30px' }}>
             <div className="prism-face" style={{ position: 'absolute', width: '100%', height: '100%', border: '2px solid transparent', transformOrigin: 'center', animation: 'prismRotate 3s linear infinite', borderImage: 'linear-gradient(45deg, #ff3333, #00a8ff) 1', animationDelay: '0s' }}></div>

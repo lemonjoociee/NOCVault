@@ -19,12 +19,14 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
   const [formName, setFormName] = useState('');
   const [formEmail, setFormEmail] = useState('');
   const [formRole, setFormRole] = useState('NOC');
+  const [formTempPassword, setFormTempPassword] = useState('Scicom@2026!');
   const [formStatus, setFormStatus] = useState('Active');
 
   const handleOpenAdd = () => {
     setFormName('');
     setFormEmail('');
     setFormRole('NOC');
+    setFormTempPassword(`Scicom@${Math.floor(1000 + Math.random() * 9000)}`);
     setFormStatus('Active');
     setShowAddModal(true);
   };
@@ -52,7 +54,7 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
     setMembers([...members, newMember]);
     setShowAddModal(false);
 
-    setToastMessage(`Invitation email successfully sent to ${formEmail} (${formRole} role)!`);
+    setToastMessage(`Invitation email with temporary password sent to ${formEmail}!`);
     setTimeout(() => setToastMessage(''), 4000);
   };
 
@@ -161,10 +163,10 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
         </table>
       </div>
 
-      {/* ADD MEMBER MODAL WITH EMAIL PREVIEW */}
+      {/* ADD MEMBER MODAL WITH TEMPORARY PASSWORD & LIVE EMAIL PREVIEW */}
       {showAddModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-          <div style={{ width: '850px', maxHeight: '90vh', overflowY: 'auto', backgroundColor: '#121216', border: '1px solid rgba(0,255,255,0.3)', borderRadius: '20px', padding: '30px', boxShadow: '0 20px 50px rgba(0,0,0,0.9)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
+          <div style={{ width: '900px', maxHeight: '90vh', overflowY: 'auto', backgroundColor: '#121216', border: '1px solid rgba(0,255,255,0.3)', borderRadius: '20px', padding: '30px', boxShadow: '0 20px 50px rgba(0,0,0,0.9)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
             
             {/* Left Column: Form Inputs */}
             <div>
@@ -175,8 +177,12 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
                   <input type="text" required placeholder="e.g. John Doe" value={formName} onChange={(e) => setFormName(e.target.value)} style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', color: '#fff', outline: 'none' }} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', marginBottom: '6px', textTransform: 'uppercase' }}>Email Address</label>
+                  <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', marginBottom: '6px', textTransform: 'uppercase' }}>Email Address (@scicom.com.my)</label>
                   <input type="email" required placeholder="john@scicom.com.my" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', color: '#fff', outline: 'none' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', marginBottom: '6px', textTransform: 'uppercase' }}>Temporary Password</label>
+                  <input type="text" required value={formTempPassword} onChange={(e) => setFormTempPassword(e.target.value)} style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', color: '#00ffff', fontFamily: 'monospace', outline: 'none' }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', marginBottom: '6px', textTransform: 'uppercase' }}>System Role</label>
@@ -192,7 +198,7 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
               </form>
             </div>
 
-            {/* Right Column: Live Email Invitation Preview */}
+            {/* Right Column: Live Email Invitation Preview including Temporary Password */}
             <div style={{ backgroundColor: '#1a1a22', border: '1px dashed rgba(0,255,255,0.3)', borderRadius: '14px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#00ffff', letterSpacing: '1px', fontWeight: 'bold', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '8px' }}>
                 📄 Invitation Email Preview
@@ -203,11 +209,15 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
               <div style={{ fontSize: '0.8rem', color: '#b0b0b0', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '8px' }}>
                 <strong>Subject:</strong> Invitation to Scicom Operations Portal
               </div>
-              <div style={{ backgroundColor: 'rgba(18,18,22,0.8)', padding: '15px', borderRadius: '10px', fontSize: '0.85://rem', color: '#e0e0e0', lineHeight: '1.5', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ backgroundColor: 'rgba(18,18,22,0.8)', padding: '15px', borderRadius: '10px', fontSize: '0.85rem', color: '#e0e0e0', lineHeight: '1.5', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <p style={{ margin: 0 }}>Hello <strong>{formName || '[Full Name]'}</strong>,</p>
                 <p style={{ margin: 0 }}>You have been invited to join the <strong>Scicom Operations Portal</strong> as a <strong>{formRole}</strong> user.</p>
-                <p style={{ margin: 0, fontSize: '0.8rem', color: '#aaa' }}>Your role grants you access to official runbooks, escalation matrices, and incident management workflows.</p>
-                <div style={{ textAlign: 'center', marginTop: '10px' }}>
+                <div style={{ backgroundColor: 'rgba(0,255,255,0.08)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(0,255,255,0.2)' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#00ffff', textTransform: 'uppercase', marginBottom: '2px' }}>Temporary Password:</div>
+                  <div style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#fff' }}>{formTempPassword}</div>
+                </div>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: '#aaa' }}>* You will be required to change this password upon your first login.</p>
+                <div style={{ textAlign: 'center', marginTop: '5px' }}>
                   <span style={{ display: 'inline-block', padding: '8px 20px', background: 'linear-gradient(90deg, #8a2be2, #00ffff)', color: '#fff', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 'bold' }}>
                     Accept Invitation & Login
                   </span>

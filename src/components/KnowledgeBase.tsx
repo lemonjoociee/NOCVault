@@ -2,20 +2,21 @@ import React, { useState } from 'react';
 
 interface KnowledgeBaseProps {
   userRole: 'Admin' | 'NOC';
+  customIncidents: any[];
   setActiveTab: (tab: string) => void;
   onOpenAddCase: () => void;
   onOpenProfile: () => void;
   onLogout: () => void;
 }
 
-export default function KnowledgeBase({ userRole, setActiveTab, onOpenAddCase, onOpenProfile, onLogout }: KnowledgeBaseProps) {
+export default function KnowledgeBase({ userRole, customIncidents, setActiveTab, onOpenAddCase, onOpenProfile, onLogout }: KnowledgeBaseProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const allCards = [
     {
       id: 'knowledge',
       title: 'Knowledge Base',
-      desc: 'Access official runbooks, installation guides, and NOC project documentation.',
+      desc: `Access official runbooks, guides, and NOC documentation. (${customIncidents.length} active tickets logged)`,
       tags: ['RUNBOOKS', 'GUIDES'],
       action: () => setActiveTab('documents'),
       btnText: 'Explore Docs',
@@ -46,12 +47,11 @@ export default function KnowledgeBase({ userRole, setActiveTab, onOpenAddCase, o
       desc: 'Log a new incident ticket, assign severity, and document initial troubleshooting.',
       tags: ['INCIDENT', 'TICKET'],
       action: onOpenAddCase,
-      btnText: '+ Add Case',
+      btnText: '+ Create Ticket',
       image: '/images/caseicon.png'
     }
   ];
 
-  // Filter cards: If NOC, exclude cards marked adminOnly
   const cards = allCards.filter(card => userRole === 'Admin' || !card.adminOnly);
   const totalCards = cards.length;
 
@@ -162,7 +162,7 @@ export default function KnowledgeBase({ userRole, setActiveTab, onOpenAddCase, o
               
               <div style={{ display: 'flex', gap: '8px', marginBottom: '15px' }}>
                 {card.tags.map(tag => (
-                  <span key={tag} style={{ border: '1px solid var(--accent-purple)', color: 'var(--accent-purple)', padding: '3px 8px', borderRadius: '20px', fontSize: '0.6rem', letterSpacing: '1px' }}>
+                  <span key={tag} style={{ border: '1px solid #9945ff', color: '#9945ff', padding: '3px 8px', borderRadius: '20px', fontSize: '0.6rem', letterSpacing: '1px' }}>
                     {tag}
                   </span>
                 ))}
