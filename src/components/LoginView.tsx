@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 interface LoginViewProps {
-  onLogin: (email: string, password: string) => void;
+  onLogin: (email: string, password?: string) => void;
 }
 
 export default function LoginView({ onLogin }: LoginViewProps) {
@@ -11,6 +11,9 @@ export default function LoginView({ onLogin }: LoginViewProps) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isFirstLogin, setIsFirstLogin] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Common breached or weak passwords to block
+  const weakPasswordsList = ['password123', 'admin123', 'scicom123', '12345678', 'qwertyuiop', 'letmein123'];
 
   // Floating background particles
   const [particles] = useState(() => 
@@ -33,8 +36,8 @@ export default function LoginView({ onLogin }: LoginViewProps) {
       return;
     }
 
-    // Simulate first-time login check (e.g., if password is 'temporary123' or flagged)
-    if (password === 'temporary123' || password === 'Welcome123') {
+    // Check if temporary password or first login flag
+    if (password === 'temporary123' || password === 'Scicom@2026!') {
       setIsFirstLogin(true);
       return;
     }
@@ -46,8 +49,21 @@ export default function LoginView({ onLogin }: LoginViewProps) {
     e.preventDefault();
     setErrorMsg('');
 
-    if (newPassword.length < 6) {
-      setErrorMsg('New password must be at least 6 characters long.');
+    // NIST & Security Guideline: Length over complexity (at least 12-15 characters)
+    if (newPassword.length < 12) {
+      setErrorMsg('Strong Password Policy: Password must be at least 12 characters long (aim for a passphrase of unrelated random words).');
+      return;
+    }
+
+    // Check against weak or breached lists
+    if (weakPasswordsList.includes(newPassword.toLowerCase())) {
+      setErrorMsg('This password has appeared in known data breaches or is too common. Please choose a unique passphrase.');
+      return;
+    }
+
+    // Check personal data or sequential patterns (e.g. 123456, abcdef)
+    if (/12345|qwerty|password|admin/i.test(newPassword)) {
+      setErrorMsg('Password contains common sequential patterns or weak dictionary words.');
       return;
     }
 
@@ -56,7 +72,6 @@ export default function LoginView({ onLogin }: LoginViewProps) {
       return;
     }
 
-    // Proceed to login with the updated password
     onLogin(email, newPassword);
   };
 
@@ -109,7 +124,7 @@ export default function LoginView({ onLogin }: LoginViewProps) {
         position: 'relative',
         zIndex: 10,
         width: '100%',
-        maxWidth: '420px',
+        maxWidth: '460px',
         backgroundColor: 'rgba(18, 18, 22, 0.95)',
         border: '1px solid rgba(255, 255, 255, 0.1)',
         borderRadius: '24px',
@@ -123,11 +138,11 @@ export default function LoginView({ onLogin }: LoginViewProps) {
         </div>
         
         <p style={{ color: '#b0b0b0', fontSize: '0.85rem', marginBottom: '25px', letterSpacing: '1px', textTransform: 'uppercase' }}>
-          {isFirstLogin ? 'Set New Password' : 'Scicom Operations Portal'}
+          {isFirstLogin ? 'Secure Password Setup' : 'Scicom Operations Portal'}
         </p>
 
         {errorMsg && (
-          <div style={{ backgroundColor: 'rgba(255,51,51,0.15)', border: '1px solid rgba(255,51,51,0.4)', color: '#ff3333', padding: '10px 14px', borderRadius: '10px', fontSize: '0.8rem', marginBottom: '20px', textAlign: 'left' }}>
+          <div style={{ backgroundColor: 'rgba(255,51,51,0.15)', border: '1px solid rgba(255,51,51,0.4)', color: '#ff3333', padding: '12px 14px', borderRadius: '10px', fontSize: '0.8rem', marginBottom: '20px', textAlign: 'left', lineHeight: '1.4' }}>
             ⚠️ {errorMsg}
           </div>
         )}
@@ -160,7 +175,6 @@ export default function LoginView({ onLogin }: LoginViewProps) {
                 onChange={(e) => setPassword(e.target.value)}
                 style={{ width: '100%', padding: '12px 16px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.12)', borderRadius: '12px', color: '#fff', fontSize: '0.9rem', outline: 'none' }}
               />
-              <span style={{ fontSize: '0.7rem', color: '#888', marginTop: '4px', display: 'block' }}>*Use temporary invite password (e.g., temporary123) for new accounts</span>
             </div>
 
             <button 
@@ -185,19 +199,21 @@ export default function LoginView({ onLogin }: LoginViewProps) {
             </button>
           </form>
         ) : (
-          <form onSubmit={handlePasswordResetSubmit} style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-            <p style={{ fontSize: '0.85rem', color: '#00ffff', lineHeight: '1.4', margin: '0 0 5px 0' }}>
-              First-time login detected for <strong>{email}</strong>. Please set a secure new password to activate your account.
-            </p>
+          <form onSubmit={handlePasswordResetSubmit} style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ backgroundColor: 'rgba(0,255,255,0.05)', padding: '12px', borderRadius: '10px', border: '1px solid rgba(0,255,255,0.2)' }}>
+              <p style={{ fontSize: '0.8rem', color: '#00ffff', lineHeight: '1.4', margin: 0 }}>
+                🔒 <strong>NIST Security Policy:</strong> Create a strong passphrase of <strong>at least 12 characters</strong> (e.g., 4 unrelated random words). Avoid personal data, birthdays, or common dictionary words.
+              </p>
+            </div>
 
             <div>
               <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px', fontWeight: 'bold' }}>
-                New Password
+                New Passphrase / Password
               </label>
               <input 
                 type="password" 
                 required
-                placeholder="At least 6 characters"
+                placeholder="At least 12 characters long"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 style={{ width: '100%', padding: '12px 16px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.12)', borderRadius: '12px', color: '#fff', fontSize: '0.9rem', outline: 'none' }}
@@ -206,12 +222,12 @@ export default function LoginView({ onLogin }: LoginViewProps) {
 
             <div>
               <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px', fontWeight: 'bold' }}>
-                Confirm New Password
+                Confirm Passphrase
               </label>
               <input 
                 type="password" 
                 required
-                placeholder="Re-enter new password"
+                placeholder="Re-enter new passphrase"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 style={{ width: '100%', padding: '12px 16px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.12)', borderRadius: '12px', color: '#fff', fontSize: '0.9rem', outline: 'none' }}
