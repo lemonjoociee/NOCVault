@@ -29,7 +29,7 @@ const DEFAULT_INCIDENTS = [
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState<'Admin' | 'NOC'>('Admin');
+  const [currentUser, setCurrentUser] = useState<{ email: string; role: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
@@ -65,9 +65,8 @@ export default function App() {
     syncIncidents();
   }, []);
 
-  const handleLoginTrigger = (email: string, password?: string) => {
-    const assignedRole = email.toLowerCase().includes('admin') || email.toLowerCase().includes('manager') ? 'Admin' : 'NOC';
-    setUserRole(assignedRole);
+  const handleLoginTrigger = (userData: { email: string; role: string }) => {
+    setCurrentUser(userData);
 
     setIsLoading(true);
     setIsFadingOut(false);
@@ -82,6 +81,9 @@ export default function App() {
     }, 1700);
   };
 
+  // Format role for components expecting capitalized 'Admin' or 'NOC'
+  const formattedRole = currentUser?.role?.toLowerCase() === 'admin' ? 'Admin' : 'NOC';
+
   return (
     <ThemeProvider>
       {!isAuthenticated ? (
@@ -90,12 +92,15 @@ export default function App() {
         <PageLayout>
           {activeTab === 'home' && (
             <KnowledgeBase
-              userRole={userRole}
+              userRole={formattedRole}
               customIncidents={incidents}
               setActiveTab={setActiveTab}
               onOpenAddCase={() => setActiveTab('addcase')}
               onOpenProfile={() => setActiveTab('profile')}
-              onLogout={() => setIsAuthenticated(false)}
+              onLogout={() => {
+                setIsAuthenticated(false);
+                setCurrentUser(null);
+              }}
             />
           )}
 
@@ -133,7 +138,7 @@ export default function App() {
             <EscalationMatrix onBack={() => setActiveTab('home')} />
           )}
 
-          {activeTab === 'admin' && userRole === 'Admin' && (
+          {activeTab === 'admin' && formattedRole === 'Admin' && (
             <AdminMemberManager onBack={() => setActiveTab('home')} />
           )}
         </PageLayout>

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { supabase } from './supabaseClient';
 
 interface LoginViewProps {
-  onLogin: (email: string, password?: string) => void;
+  onLogin: (userData: { email: string; role: string }) => void;
 }
 
 export default function LoginView({ onLogin }: LoginViewProps) {
@@ -11,6 +12,7 @@ export default function LoginView({ onLogin }: LoginViewProps) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isFirstLogin, setIsFirstLogin] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [loading, setLoading] = useState(false);
 
   // Common breached or weak passwords to block
   const weakPasswordsList = ['password123', 'admin123', 'scicom123', '12345678', 'qwertyuiop', 'letmein123'];
@@ -26,42 +28,63 @@ export default function LoginView({ onLogin }: LoginViewProps) {
     }))
   );
 
-  const handleInitialSubmit = (e: React.FormEvent) => {
+  const handleInitialSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+    setLoading(true);
+
+    const cleanEmail = email.trim().toLowerCase();
 
     // Rule 1: Validate @scicom.com.my email domain
-    if (!email.toLowerCase().endsWith('@scicom.com.my')) {
+    if (!cleanEmail.endsWith('@scicom.com.my')) {
       setErrorMsg('Access restricted. Only @scicom.com.my email addresses are allowed.');
+      setLoading(false);
+      return;
+    }
+
+    // Query Supabase members table to verify registration and fetch role
+    const { data: member, error } = await supabase
+      .from('members')
+      .select('*')
+      .eq('email', cleanEmail)
+      .single();
+
+    if (error || !member) {
+      setErrorMsg('Access Denied: This email address is not registered in the system database.');
+      setLoading(false);
       return;
     }
 
     // Check if temporary password or first login flag
     if (password === 'temporary123' || password === 'Scicom@2026!') {
       setIsFirstLogin(true);
+      setLoading(false);
       return;
     }
 
-    onLogin(email, password);
+    setLoading(false);
+    // Pass authenticated user object containing email and role ('admin' or 'noc')
+    onLogin({
+      email: member.email,
+      role: member.role
+    });
   };
 
-  const handlePasswordResetSubmit = (e: React.FormEvent) => {
+  const handlePasswordResetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
 
-    // NIST & Security Guideline: Length over complexity (at least 12-15 characters)
+    // NIST & Security Guideline: Length over complexity (at least 12 characters)
     if (newPassword.length < 12) {
-      setErrorMsg('Strong Password Policy: Password must be at least 12 characters long (aim for a passphrase of unrelated random words).');
+      setErrorMsg('Strong Password Policy: Password must be at least 12 characters long.');
       return;
     }
 
-    // Check against weak or breached lists
     if (weakPasswordsList.includes(newPassword.toLowerCase())) {
-      setErrorMsg('This password has appeared in known data breaches or is too common. Please choose a unique passphrase.');
+      setErrorMsg('This password has appeared in known data breaches or is too common.');
       return;
     }
 
-    // Check personal data or sequential patterns (e.g. 123456, abcdef)
     if (/12345|qwerty|password|admin/i.test(newPassword)) {
       setErrorMsg('Password contains common sequential patterns or weak dictionary words.');
       return;
@@ -72,7 +95,19 @@ export default function LoginView({ onLogin }: LoginViewProps) {
       return;
     }
 
-    onLogin(email, newPassword);
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Fetch member details to ensure correct role is passed after update
+    const { data: member } = await supabase
+      .from('members')
+      .select('*')
+      .eq('email', cleanEmail)
+      .single();
+
+    onLogin({
+      email: cleanEmail,
+      role: member ? member.role : 'noc' // Default fallback to noc role
+    });
   };
 
   return (
@@ -179,6 +214,7 @@ export default function LoginView({ onLogin }: LoginViewProps) {
 
             <button 
               type="submit"
+              disabled={loading}
               style={{ 
                 width: '100%', 
                 padding: '14px', 
@@ -192,17 +228,18 @@ export default function LoginView({ onLogin }: LoginViewProps) {
                 textTransform: 'uppercase',
                 letterSpacing: '1px',
                 fontSize: '0.9rem',
-                boxShadow: '0 5px 20px rgba(138, 43, 226, 0.4)'
+                boxShadow: '0 5px 20px rgba(138, 43, 226, 0.4)',
+                opacity: loading ? 0.7 : 1
               }}
             >
-              Login
+              {loading ? 'Verifying Access...' : 'Login'}
             </button>
           </form>
         ) : (
           <form onSubmit={handlePasswordResetSubmit} style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ backgroundColor: 'rgba(0,255,255,0.05)', padding: '12px', borderRadius: '10px', border: '1px solid rgba(0,255,255,0.2)' }}>
               <p style={{ fontSize: '0.8rem', color: '#00ffff', lineHeight: '1.4', margin: 0 }}>
-                🔒 <strong>NIST Security Policy:</strong> Create a strong passphrase of <strong>at least 12 characters</strong> (e.g., 4 unrelated random words). Avoid personal data, birthdays, or common dictionary words.
+                🔒 <strong>NIST Security Policy:</strong> Create a strong passphrase of <strong>at least 12 characters</strong>.
               </p>
             </div>
 
