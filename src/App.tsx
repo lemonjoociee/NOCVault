@@ -8,7 +8,7 @@ import AddCaseView from './components/AddCaseView';
 import LoginView from './components/LoginView';
 import PageLayout from './components/PageLayout';
 import { ThemeProvider } from './context/ThemeContext';
-import { supabase } from './supabaseClient';
+import { supabase } from './components/supabaseClient';
 
 const DEFAULT_INCIDENTS = [
   {
