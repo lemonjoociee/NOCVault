@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '@/supabaseClient';
+import { supabase } from './supabaseClient';
 
 interface LoginViewProps {
   onLogin: (userData: { email: string; role: string }) => void;
