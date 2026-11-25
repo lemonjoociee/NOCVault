@@ -67,6 +67,15 @@ export default function KnowledgeBase({
       action: () => setActiveTab('schedule'),
       btnText: 'View Schedule',
       image: '/images/schedule.png'
+    },
+    {
+      id: 'tasks',
+      title: 'NOC Tasks',
+      desc: 'Shift checklists, assigned operational duties, and task progress tracking.',
+      tags: ['TASKS', 'SHIFT', 'PROGRESS'],
+      action: () => setActiveTab('tasks'),
+      btnText: 'View Tasks',
+      image: '/images/task.png'
     }
   ];
 

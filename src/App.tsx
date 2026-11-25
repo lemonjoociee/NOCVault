@@ -10,6 +10,7 @@ import LoginView from './components/LoginView';
 import PageLayout from './components/PageLayout';
 import { ThemeProvider } from './context/ThemeContext';
 import { supabase } from './components/supabaseClient';
+import TasksView from './components/TasksView';
 
 const DEFAULT_INCIDENTS = [
   {
@@ -150,6 +151,15 @@ export default function App() {
           {activeTab === 'admin' && formattedRole === 'Admin' && (
             <AdminMemberManager onBack={() => setActiveTab('home')} />
           )}
+
+          {activeTab === 'tasks' && (
+            <TasksView
+              userRole={formattedRole}
+              userEmail={currentUser?.email || ''}
+              onBack={() => setActiveTab('home')}
+            />
+          )}
+
         </PageLayout>
       )}
 
