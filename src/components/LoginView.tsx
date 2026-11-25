@@ -42,7 +42,7 @@ export default function LoginView({ onLogin }: LoginViewProps) {
       return;
     }
 
-    // Query Supabase members table to verify registration and fetch role + password
+    // Query Supabase members table to verify registration, role, and password
     const { data: member, error } = await supabase
       .from('members')
       .select('*')
@@ -56,27 +56,26 @@ export default function LoginView({ onLogin }: LoginViewProps) {
     }
 
     if (member.status && member.status.toLowerCase() !== 'active') {
-      setErrorMsg('Access Denied: This account is not active. Contact an administrator.');
+      setErrorMsg('Access Denied: This account is inactive. Contact an administrator.');
       setLoading(false);
       return;
     }
 
-    // Verify password against the member record
+    // Verify password against Supabase member record
     if (!member.password || member.password !== password) {
       setErrorMsg('Access Denied: Invalid email or password.');
       setLoading(false);
       return;
     }
 
-    // Check if temporary password or first login flag
-    if (password === 'temporary123' || password === 'Scicom@2026!') {
+    // Force password reset if must_change_password is true
+    if (member.must_change_password) {
       setIsFirstLogin(true);
       setLoading(false);
       return;
     }
 
     setLoading(false);
-    // Pass authenticated user object containing email and role ('admin' or 'noc')
     onLogin({
       email: member.email,
       role: member.role
@@ -115,10 +114,13 @@ export default function LoginView({ onLogin }: LoginViewProps) {
 
     const cleanEmail = email.trim().toLowerCase();
 
-    // Update password in Supabase members table
+    // Update new password and set must_change_password to false
     const { data: updatedMember, error: updateError } = await supabase
       .from('members')
-      .update({ password: newPassword })
+      .update({
+        password: newPassword,
+        must_change_password: false
+      })
       .eq('email', cleanEmail)
       .select()
       .single();
@@ -126,7 +128,7 @@ export default function LoginView({ onLogin }: LoginViewProps) {
     setLoading(false);
 
     if (updateError) {
-      setErrorMsg('Failed to update password in database. Please try again.');
+      setErrorMsg('Failed to save your new password. Please try again.');
       return;
     }
 
@@ -226,7 +228,7 @@ export default function LoginView({ onLogin }: LoginViewProps) {
 
             <div>
               <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px', fontWeight: 'bold' }}>
-                Password / Invite Code
+                Password / Temp Code
               </label>
               <input
                 type="password"

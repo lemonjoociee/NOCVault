@@ -6,8 +6,6 @@ interface AdminMemberManagerProps {
 }
 
 export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) {
-  const adminSenderEmail = 'izzul.azhar@scicom.com.my';
-
   // Fallback team members when running in sandboxed preview
   const initialMembers = [
     {
@@ -15,14 +13,16 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
       name: 'Izzul Azhar',
       email: 'izzul.azhar@scicom.com.my',
       role: 'Admin',
-      status: 'Active'
+      status: 'Active',
+      must_change_password: false
     },
     {
       id: 2,
       name: 'NOC Duty Engineer',
       email: 'noc.support@scicom.com.my',
       role: 'NOC',
-      status: 'Active'
+      status: 'Active',
+      must_change_password: false
     }
   ];
 
@@ -69,45 +69,70 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
     setFormName(member.name);
     setFormEmail(member.email || '');
     setFormRole(member.role === 'Admin' ? 'Admin' : 'NOC');
-    setFormTempPassword(''); 
+    setFormTempPassword('');
     setFormStatus(member.status);
   };
 
   const handleSaveAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formName || !formEmail) return;
+    const cleanEmail = formEmail.trim().toLowerCase();
+    if (!formName.trim() || !cleanEmail) return;
 
-    const newMember = {
-      id: Date.now(),
-      name: formName,
-      email: formEmail,
+    if (!cleanEmail.endsWith('@scicom.com.my')) {
+      setToastMessage('Only @scicom.com.my email addresses are allowed.');
+      setTimeout(() => setToastMessage(''), 4000);
+      return;
+    }
+
+    const payload = {
+      name: formName.trim(),
+      email: cleanEmail,
       role: formRole,
-      status: 'Active'
+      status: 'Active',
+      password: formTempPassword,
+      must_change_password: true
     };
 
+    let savedRow: any = { id: Date.now(), ...payload };
+
     try {
-      const { error } = await supabase.from('members').insert([newMember]);
-      if (error) console.warn('Supabase insert warning (saved locally):', error.message);
+      const { data, error } = await supabase
+        .from('members')
+        .insert([payload])
+        .select()
+        .single();
+
+      if (error) {
+        console.warn('Supabase insert warning (saved locally):', error.message);
+      } else if (data) {
+        savedRow = data;
+      }
     } catch (err) {
       console.warn('Saved member to local state (Supabase offline).');
     }
 
-    setMembers(prev => [...prev, newMember]);
+    setMembers(prev => [...prev, savedRow]);
     setShowAddModal(false);
 
-    setToastMessage(`Invitation email sent from ${adminSenderEmail} to ${formEmail}!`);
-    setTimeout(() => setToastMessage(''), 4000);
+    setToastMessage(`Added ${formName.trim()} — Temp password: ${formTempPassword}`);
+    setTimeout(() => setToastMessage(''), 5000);
   };
 
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const updatedData = {
-      name: formName,
-      email: formEmail,
+    const cleanEmail = formEmail.trim().toLowerCase();
+
+    const updatedData: any = {
+      name: formName.trim(),
+      email: cleanEmail,
       role: formRole,
       status: formStatus
     };
+
+    if (formTempPassword.trim()) {
+      updatedData.password = formTempPassword.trim();
+      updatedData.must_change_password = true;
+    }
 
     try {
       const { error } = await supabase
@@ -119,12 +144,14 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
       console.warn('Updated member in local state (Supabase offline).');
     }
 
-    setMembers(members.map(m => m.id === editingMember.id ? { ...m, ...updatedData } : m));
+    setMembers(members.map(m => (m.id === editingMember.id ? { ...m, ...updatedData } : m)));
     setEditingMember(null);
 
-    const resetNote = formTempPassword ? ' (Password Reset Applied)' : '';
-    setToastMessage(`Member ${formName} updated successfully${resetNote}.`);
-    setTimeout(() => setToastMessage(''), 3000);
+    const resetNote = formTempPassword.trim()
+      ? ` (Temp password set to ${formTempPassword.trim()} — reset required on login)`
+      : '';
+    setToastMessage(`Member ${formName.trim()} updated successfully${resetNote}.`);
+    setTimeout(() => setToastMessage(''), 4000);
   };
 
   const handleRemove = async (id: number) => {
@@ -144,23 +171,23 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
 
   return (
     <div style={{ minHeight: '100vh', padding: '40px 20px', color: '#fff', position: 'relative', zIndex: 10 }}>
-      
+
       {/* Header Bar */}
       <div style={{ maxWidth: '1100px', margin: '0 auto 25px auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 style={{ fontSize: '1.8rem', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '5px' }}>
             <span style={{ color: '#00ffff' }}>Team</span> Management
           </h1>
-          <p style={{ color: '#b0b0b0', fontSize: '0.9rem' }}>Manage NOC personnel, role assignments, and system access permissions.</p>
+          <p style={{ color: '#b0b0b0', fontSize: '0.9rem' }}>Manage NOC personnel, role assignments, and temporary login credentials.</p>
         </div>
         <div style={{ display: 'flex', gap: '15px' }}>
-          <button 
+          <button
             onClick={handleOpenAdd}
             style={{ background: 'linear-gradient(90deg, #8a2be2, #00ffff)', border: 'none', color: '#fff', padding: '10px 20px', borderRadius: '30px', cursor: 'pointer', fontWeight: 'bold' }}
           >
             + Add Member
           </button>
-          <button 
+          <button
             onClick={onBack}
             style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', padding: '10px 20px', borderRadius: '30px', cursor: 'pointer', fontWeight: 'bold' }}
           >
@@ -172,7 +199,7 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
       {/* Toast Notification */}
       {toastMessage && (
         <div style={{ maxWidth: '1100px', margin: '0 auto 20px auto', backgroundColor: 'rgba(0, 255, 136, 0.15)', border: '1px solid #00ff88', color: '#00ff88', padding: '12px 20px', borderRadius: '12px', textAlign: 'center', fontWeight: 'bold' }}>
-          ✉️ {toastMessage}
+          ✅ {toastMessage}
         </div>
       )}
 
@@ -190,7 +217,7 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
           <tbody>
             {members.length === 0 ? (
               <tr>
-                <td colSpan={4} style={{ padding: '30px', textAlign: 'center', color: '#888' }}>No members found. Click "+ Add Member" to invite personnel.</td>
+                <td colSpan={4} style={{ padding: '30px', textAlign: 'center', color: '#888' }}>No members found. Click "+ Add Member" to create personnel access.</td>
               </tr>
             ) : (
               members.map((member) => (
@@ -210,13 +237,13 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
                     </span>
                   </td>
                   <td style={{ padding: '16px 20px', textAlign: 'right' }}>
-                    <button 
+                    <button
                       onClick={() => handleOpenEdit(member)}
                       style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', padding: '6px 14px', borderRadius: '15px', cursor: 'pointer', marginRight: '8px', fontSize: '0.8rem' }}
                     >
                       Edit / Reset Password
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleRemove(member.id)}
                       style={{ background: 'rgba(255,51,51,0.15)', border: '1px solid rgba(255,51,51,0.4)', color: '#ff3333', padding: '6px 14px', borderRadius: '15px', cursor: 'pointer', fontSize: '0.8rem' }}
                     >
@@ -233,61 +260,36 @@ export default function AdminMemberManager({ onBack }: AdminMemberManagerProps) 
       {/* ADD MEMBER MODAL */}
       {showAddModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-          <div style={{ width: '900px', maxHeight: '90vh', overflowY: 'auto', backgroundColor: '#121216', border: '1px solid rgba(0,255,255,0.3)', borderRadius: '20px', padding: '30px', boxShadow: '0 20px 50px rgba(0,0,0,0.9)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
-            
-            <div>
-              <h2 style={{ fontSize: '1.2rem', marginBottom: '20px', color: '#00ffff' }}>Add Team Member & Send Invite</h2>
-              <form onSubmit={handleSaveAdd} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                <div>
-                  <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', marginBottom: '6px', textTransform: 'uppercase' }}>Full Name</label>
-                  <input type="text" required placeholder="e.g. John Doe" value={formName} onChange={(e) => setFormName(e.target.value)} style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', color: '#fff', outline: 'none' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', marginBottom: '6px', textTransform: 'uppercase' }}>Email Address (@scicom.com.my)</label>
-                  <input type="email" required placeholder="john@scicom.com.my" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', color: '#fff', outline: 'none' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', marginBottom: '6px', textTransform: 'uppercase' }}>Temporary Password</label>
-                  <input type="text" required value={formTempPassword} onChange={(e) => setFormTempPassword(e.target.value)} style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', color: '#00ffff', fontFamily: 'monospace', outline: 'none' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', marginBottom: '6px', textTransform: 'uppercase' }}>System Role</label>
-                  <select value={formRole} onChange={(e) => setFormRole(e.target.value)} style={{ width: '100%', padding: '12px', background: '#121216', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', color: '#fff', outline: 'none' }}>
-                    <option value="NOC">NOC (Standard Access)</option>
-                    <option value="Admin">Admin (Full Access)</option>
-                  </select>
-                </div>
-                <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
-                  <button type="submit" style={{ flex: 1, padding: '12px', background: 'linear-gradient(90deg, #8a2be2, #00ffff)', border: 'none', borderRadius: '20px', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}>Send Invite & Add</button>
-                  <button type="button" onClick={() => setShowAddModal(false)} style={{ flex: 1, padding: '12px', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '20px', color: '#fff', cursor: 'pointer' }}>Cancel</button>
-                </div>
-              </form>
-            </div>
-
-            <div style={{ backgroundColor: '#1a1a22', border: '1px dashed rgba(0,255,255,0.3)', borderRadius: '14px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#00ffff', letterSpacing: '1px', fontWeight: 'bold', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '8px' }}>
-                📄 Invitation Email Preview
+          <div style={{ width: '440px', maxHeight: '90vh', overflowY: 'auto', backgroundColor: '#121216', border: '1px solid rgba(0,255,255,0.3)', borderRadius: '20px', padding: '30px', boxShadow: '0 20px 50px rgba(0,0,0,0.9)' }}>
+            <h2 style={{ fontSize: '1.2rem', marginBottom: '20px', color: '#00ffff' }}>Add Team Member</h2>
+            <form onSubmit={handleSaveAdd} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <div>
+                <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', marginBottom: '6px', textTransform: 'uppercase' }}>Full Name</label>
+                <input type="text" required placeholder="e.g. John Doe" value={formName} onChange={(e) => setFormName(e.target.value)} style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', color: '#fff', outline: 'none' }} />
               </div>
-              <div style={{ fontSize: '0.8rem', color: '#b0b0b0' }}>
-                <strong>From:</strong> {adminSenderEmail}
+              <div>
+                <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', marginBottom: '6px', textTransform: 'uppercase' }}>Email Address (@scicom.com.my)</label>
+                <input type="email" required placeholder="john@scicom.com.my" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', color: '#fff', outline: 'none' }} />
               </div>
-              <div style={{ fontSize: '0.8rem', color: '#b0b0b0' }}>
-                <strong>To:</strong> {formEmail || 'recipient@scicom.com.my'}
+              <div>
+                <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', marginBottom: '6px', textTransform: 'uppercase' }}>Temporary Password</label>
+                <input type="text" required value={formTempPassword} onChange={(e) => setFormTempPassword(e.target.value)} style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', color: '#00ffff', fontFamily: 'monospace', outline: 'none' }} />
+                <p style={{ fontSize: '0.75rem', color: '#888', marginTop: '6px', marginBottom: 0 }}>
+                  Copy this temporary password and share it with the user—they will set a new 12+ character password on first login.
+                </p>
               </div>
-              <div style={{ fontSize: '0.8rem', color: '#b0b0b0', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '8px' }}>
-                <strong>Subject:</strong> Invitation to Scicom Operations Portal
+              <div>
+                <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', marginBottom: '6px', textTransform: 'uppercase' }}>System Role</label>
+                <select value={formRole} onChange={(e) => setFormRole(e.target.value)} style={{ width: '100%', padding: '12px', background: '#121216', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', color: '#fff', outline: 'none' }}>
+                  <option value="NOC">NOC (Standard Access)</option>
+                  <option value="Admin">Admin (Full Access)</option>
+                </select>
               </div>
-              <div style={{ backgroundColor: 'rgba(18,18,22,0.8)', padding: '15px', borderRadius: '10px', fontSize: '0.85rem', color: '#e0e0e0', lineHeight: '1.5', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <p style={{ margin: 0 }}>Hello <strong>{formName || '[Full Name]'}</strong>,</p>
-                <p style={{ margin: 0 }}>You have been invited by <strong>{adminSenderEmail}</strong> to join the <strong>Scicom Operations Portal</strong> as a <strong>{formRole}</strong> user.</p>
-                <div style={{ backgroundColor: 'rgba(0,255,255,0.08)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(0,255,255,0.2)' }}>
-                  <div style={{ fontSize: '0.75rem', color: '#00ffff', textTransform: 'uppercase', marginBottom: '2px' }}>Temporary Password:</div>
-                  <div style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#fff' }}>{formTempPassword}</div>
-                </div>
-                <p style={{ margin: 0, fontSize: '0.75rem', color: '#aaa' }}>* You will be required to change this password upon your first login.</p>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+                <button type="submit" style={{ flex: 1, padding: '12px', background: 'linear-gradient(90deg, #8a2be2, #00ffff)', border: 'none', borderRadius: '20px', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}>Add Member</button>
+                <button type="button" onClick={() => setShowAddModal(false)} style={{ flex: 1, padding: '12px', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '20px', color: '#fff', cursor: 'pointer' }}>Cancel</button>
               </div>
-            </div>
-
+            </form>
           </div>
         </div>
       )}
