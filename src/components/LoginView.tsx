@@ -18,7 +18,7 @@ export default function LoginView({ onLogin }: LoginViewProps) {
   const weakPasswordsList = ['password123', 'admin123', 'scicom123', '12345678', 'qwertyuiop', 'letmein123'];
 
   // Floating background particles
-  const [particles] = useState(() => 
+  const [particles] = useState(() =>
     Array.from({ length: 20 }).map(() => ({
       left: Math.random() * 100,
       top: Math.random() * 100,
@@ -42,7 +42,7 @@ export default function LoginView({ onLogin }: LoginViewProps) {
       return;
     }
 
-    // Query Supabase members table to verify registration and fetch role
+    // Query Supabase members table to verify registration and fetch role + password
     const { data: member, error } = await supabase
       .from('members')
       .select('*')
@@ -51,6 +51,19 @@ export default function LoginView({ onLogin }: LoginViewProps) {
 
     if (error || !member) {
       setErrorMsg('Access Denied: This email address is not registered in the system database.');
+      setLoading(false);
+      return;
+    }
+
+    if (member.status && member.status.toLowerCase() !== 'active') {
+      setErrorMsg('Access Denied: This account is not active. Contact an administrator.');
+      setLoading(false);
+      return;
+    }
+
+    // Verify password against the member record
+    if (!member.password || member.password !== password) {
+      setErrorMsg('Access Denied: Invalid email or password.');
       setLoading(false);
       return;
     }
@@ -73,50 +86,63 @@ export default function LoginView({ onLogin }: LoginViewProps) {
   const handlePasswordResetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+    setLoading(true);
 
     // NIST & Security Guideline: Length over complexity (at least 12 characters)
     if (newPassword.length < 12) {
       setErrorMsg('Strong Password Policy: Password must be at least 12 characters long.');
+      setLoading(false);
       return;
     }
 
     if (weakPasswordsList.includes(newPassword.toLowerCase())) {
       setErrorMsg('This password has appeared in known data breaches or is too common.');
+      setLoading(false);
       return;
     }
 
     if (/12345|qwerty|password|admin/i.test(newPassword)) {
       setErrorMsg('Password contains common sequential patterns or weak dictionary words.');
+      setLoading(false);
       return;
     }
 
     if (newPassword !== confirmPassword) {
       setErrorMsg('Passwords do not match.');
+      setLoading(false);
       return;
     }
 
     const cleanEmail = email.trim().toLowerCase();
 
-    // Fetch member details to ensure correct role is passed after update
-    const { data: member } = await supabase
+    // Update password in Supabase members table
+    const { data: updatedMember, error: updateError } = await supabase
       .from('members')
-      .select('*')
+      .update({ password: newPassword })
       .eq('email', cleanEmail)
+      .select()
       .single();
+
+    setLoading(false);
+
+    if (updateError) {
+      setErrorMsg('Failed to update password in database. Please try again.');
+      return;
+    }
 
     onLogin({
       email: cleanEmail,
-      role: member ? member.role : 'noc' // Default fallback to noc role
+      role: updatedMember?.role ? updatedMember.role : 'noc'
     });
   };
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'center', 
-      position: 'relative', 
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      position: 'relative',
       overflow: 'hidden',
       backgroundColor: '#0a0a0a',
       backgroundImage: `
@@ -155,7 +181,7 @@ export default function LoginView({ onLogin }: LoginViewProps) {
         }
       `}</style>
 
-      <div style={{ 
+      <div style={{
         position: 'relative',
         zIndex: 10,
         width: '100%',
@@ -171,7 +197,7 @@ export default function LoginView({ onLogin }: LoginViewProps) {
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '15px' }}>
           <img src="/images/scicomlogo.png" alt="Scicom Logo" style={{ height: '45px', objectFit: 'contain' }} />
         </div>
-        
+
         <p style={{ color: '#b0b0b0', fontSize: '0.85rem', marginBottom: '25px', letterSpacing: '1px', textTransform: 'uppercase' }}>
           {isFirstLogin ? 'Secure Password Setup' : 'Scicom Operations Portal'}
         </p>
@@ -188,8 +214,8 @@ export default function LoginView({ onLogin }: LoginViewProps) {
               <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px', fontWeight: 'bold' }}>
                 Email (@scicom.com.my)
               </label>
-              <input 
-                type="email" 
+              <input
+                type="email"
                 required
                 placeholder="username@scicom.com.my"
                 value={email}
@@ -202,8 +228,8 @@ export default function LoginView({ onLogin }: LoginViewProps) {
               <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px', fontWeight: 'bold' }}>
                 Password / Invite Code
               </label>
-              <input 
-                type="password" 
+              <input
+                type="password"
                 required
                 placeholder="••••••••"
                 value={password}
@@ -212,19 +238,19 @@ export default function LoginView({ onLogin }: LoginViewProps) {
               />
             </div>
 
-            <button 
+            <button
               type="submit"
               disabled={loading}
-              style={{ 
-                width: '100%', 
-                padding: '14px', 
+              style={{
+                width: '100%',
+                padding: '14px',
                 marginTop: '10px',
-                background: 'linear-gradient(90deg, #8a2be2, #00ffff)', 
-                color: '#fff', 
-                border: 'none', 
-                borderRadius: '30px', 
-                cursor: 'pointer', 
-                fontWeight: 'bold', 
+                background: 'linear-gradient(90deg, #8a2be2, #00ffff)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '30px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
                 textTransform: 'uppercase',
                 letterSpacing: '1px',
                 fontSize: '0.9rem',
@@ -247,8 +273,8 @@ export default function LoginView({ onLogin }: LoginViewProps) {
               <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px', fontWeight: 'bold' }}>
                 New Passphrase / Password
               </label>
-              <input 
-                type="password" 
+              <input
+                type="password"
                 required
                 placeholder="At least 12 characters long"
                 value={newPassword}
@@ -261,8 +287,8 @@ export default function LoginView({ onLogin }: LoginViewProps) {
               <label style={{ display: 'block', color: '#b0b0b0', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px', fontWeight: 'bold' }}>
                 Confirm Passphrase
               </label>
-              <input 
-                type="password" 
+              <input
+                type="password"
                 required
                 placeholder="Re-enter new passphrase"
                 value={confirmPassword}
@@ -271,29 +297,30 @@ export default function LoginView({ onLogin }: LoginViewProps) {
               />
             </div>
 
-            <button 
+            <button
               type="submit"
-              style={{ 
-                width: '100%', 
-                padding: '14px', 
+              disabled={loading}
+              style={{
+                width: '100%',
+                padding: '14px',
                 marginTop: '10px',
-                background: 'linear-gradient(90deg, #00ff88, #00ffff)', 
-                color: '#000', 
-                border: 'none', 
-                borderRadius: '30px', 
-                cursor: 'pointer', 
-                fontWeight: 'bold', 
+                background: 'linear-gradient(90deg, #00ff88, #00ffff)',
+                color: '#000',
+                border: 'none',
+                borderRadius: '30px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
                 textTransform: 'uppercase',
                 letterSpacing: '1px',
                 fontSize: '0.9rem',
-                boxShadow: '0 5px 20px rgba(0,255,136,0.3)'
+                boxShadow: '0 5px 20px rgba(0,255,136,0.3)',
+                opacity: loading ? 0.7 : 1
               }}
             >
-              Update Password & Enter Portal
+              {loading ? 'Updating Password...' : 'Update Password & Enter Portal'}
             </button>
           </form>
         )}
-
       </div>
     </div>
   );
