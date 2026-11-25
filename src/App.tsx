@@ -5,6 +5,7 @@ import AdminMemberManager from './components/AdminMemberManager';
 import DocumentsView from './components/DocumentsView';
 import ProfileView from './components/ProfileView';
 import AddCaseView from './components/AddCaseView';
+import ScheduleView from './components/ScheduleView';
 import LoginView from './components/LoginView';
 import PageLayout from './components/PageLayout';
 import { ThemeProvider } from './context/ThemeContext';
@@ -100,6 +101,7 @@ export default function App() {
               onLogout={() => {
                 setIsAuthenticated(false);
                 setCurrentUser(null);
+                setActiveTab('home');
               }}
             />
           )}
@@ -108,6 +110,13 @@ export default function App() {
           {activeTab === 'documents' && (
             <DocumentsView
               customIncidents={incidents}
+              onBack={() => setActiveTab('home')}
+            />
+          )}
+
+          {activeTab === 'schedule' && (
+            <ScheduleView
+              userRole={formattedRole}
               onBack={() => setActiveTab('home')}
             />
           )}

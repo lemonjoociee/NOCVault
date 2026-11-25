@@ -58,6 +58,15 @@ export default function KnowledgeBase({
       action: onOpenAddCase,
       btnText: '+ New Incident',
       image: '/images/caseicon.png'
+    },
+    {
+      id: 'schedule',
+      title: 'NOC Schedule',
+      desc: 'Full-year shift rosters, office hours, Cyberjaya coverage, leaves, and replacements.',
+      tags: ['ROSTER', 'SHIFTS', '2026'],
+      action: () => setActiveTab('schedule'),
+      btnText: 'View Schedule',
+      image: '/images/scheduleicon.png'
     }
   ];
 
