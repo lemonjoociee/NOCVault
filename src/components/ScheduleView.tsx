@@ -20,21 +20,22 @@ interface ScheduleRow {
   remarks: string;
 }
 
-const MONTHS_2026 = [
-  'January 2026',
-  'February 2026',
-  'March 2026',
-  'April 2026',
-  'May 2026',
-  'June 2026',
-  'July 2026',
-  'August 2026',
-  'September 2026',
-  'October 2026',
-  'November 2026',
-  'December 2026'
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
+function buildMonthOptions(startYear = 2026, endYear = 2028): string[] {
+  const list: string[] = [];
+  for (let y = startYear; y <= endYear; y++) {
+    for (const m of MONTH_NAMES) {
+      list.push(`${m} ${y}`);
+    }
+  }
+  return list;
+}
+
+const SCHEDULE_MONTHS = buildMonthOptions(2026, 2028);
 const DAY_LABELS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
 const NOV_2026_OVERRIDES: Record<number, Partial<ScheduleRow>> = {
@@ -70,14 +71,20 @@ const NOV_2026_OVERRIDES: Record<number, Partial<ScheduleRow>> = {
   30: { day_shift: 'Shahmi', office_hours: ['Rajeev', 'Nina', 'Sabbir'], night_shift: 'Dani', cyberjaya: 'Vikneswaran' }
 };
 
+function parseMonthLabel(monthLabel: string): { year: number; monthIndex: number } {
+  const parts = monthLabel.trim().split(/\s+/);
+  const year = Number(parts[1]) || 2026;
+  const monthIndex = Math.max(MONTH_NAMES.indexOf(parts[0]), 0);
+  return { year, monthIndex };
+}
+
 function generateMonthTemplate(monthLabel: string): ScheduleRow[] {
-  const monthIndex = MONTHS_2026.indexOf(monthLabel);
-  const safeMonthIndex = monthIndex >= 0 ? monthIndex : 10;
-  const daysInMonth = new Date(2026, safeMonthIndex + 1, 0).getDate();
+  const { year, monthIndex } = parseMonthLabel(monthLabel);
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
 
   return Array.from({ length: daysInMonth }, (_, idx) => {
     const dayNum = idx + 1;
-    const dateObj = new Date(2026, safeMonthIndex, dayNum);
+    const dateObj = new Date(year, monthIndex, dayNum);
     const dayName = DAY_LABELS[dateObj.getDay()];
     const isWeekday = dateObj.getDay() >= 1 && dateObj.getDay() <= 5;
 
@@ -198,9 +205,9 @@ export default function ScheduleView({ userRole, onBack }: ScheduleViewProps) {
 
   const openAddModal = () => {
     if (!isAdmin) return;
-    const monthIndex = MONTHS_2026.indexOf(selectedMonth);
+    const { year, monthIndex } = parseMonthLabel(selectedMonth);
     const nextDay = rows.length ? Math.min(Math.max(...rows.map((r) => r.day_num)) + 1, 31) : 1;
-    const computedDayName = monthIndex >= 0 ? DAY_LABELS[new Date(2026, monthIndex, nextDay).getDay()] : 'MON';
+    const computedDayName = DAY_LABELS[new Date(year, monthIndex, nextDay).getDay()];
 
     setEditingRow(null);
     setIsAdding(true);
@@ -300,7 +307,7 @@ export default function ScheduleView({ userRole, onBack }: ScheduleViewProps) {
           </h1>
           <p style={{ color: '#b0b0b0', fontSize: '0.88rem', margin: 0 }}>
             {isAdmin
-              ? 'Admin mode: Add or edit full-year shift assignments, leaves, and replacements.'
+              ? 'Admin mode: Add or edit shift assignments, leaves, and replacements across upcoming years.'
               : 'View-only mode: Shift roster, Cyberjaya coverage, leaves, and replacements.'}
           </p>
         </div>
@@ -320,7 +327,7 @@ export default function ScheduleView({ userRole, onBack }: ScheduleViewProps) {
               cursor: 'pointer'
             }}
           >
-            {MONTHS_2026.map((month) => (
+            {SCHEDULE_MONTHS.map((month) => (
               <option key={month} value={month}>
                 {month}
               </option>

@@ -66,7 +66,7 @@ export default function KnowledgeBase({
       tags: ['ROSTER', 'SHIFTS', '2026'],
       action: () => setActiveTab('schedule'),
       btnText: 'View Schedule',
-      image: '/images/scheduleicon.png'
+      image: '/images/schedule.png'
     }
   ];
 
