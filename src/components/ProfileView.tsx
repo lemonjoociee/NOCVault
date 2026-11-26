@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabaseClient';
 
 interface ProfileViewProps {
@@ -6,7 +6,13 @@ interface ProfileViewProps {
   userEmail?: string;
   userName?: string;
   userRoleTitle?: string;
-  onProfileUpdated?: (updated: { fullName: string; email: string; roleTitle: string }) => void;
+  userAvatarUrl?: string;
+  onProfileUpdated?: (updated: {
+    fullName: string;
+    email: string;
+    roleTitle: string;
+    avatarUrl?: string;
+  }) => void;
 }
 
 export default function ProfileView({
@@ -14,18 +20,23 @@ export default function ProfileView({
   userEmail = 'izzul.azhar@scicom.com.my',
   userName = 'Muhammad Izzul Dinie Bin Azhar',
   userRoleTitle = 'NOC - Executive',
+  userAvatarUrl = '',
   onProfileUpdated
 }: ProfileViewProps) {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   const [memberId, setMemberId] = useState<number | null>(null);
   const [fullName, setFullName] = useState(userName);
   const [email, setEmail] = useState(userEmail);
   const [roleTitle, setRoleTitle] = useState(userRoleTitle);
+  const [avatarUrl, setAvatarUrl] = useState(userAvatarUrl);
   const [dbPassword, setDbPassword] = useState<string>('');
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [savingDetails, setSavingDetails] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -37,7 +48,7 @@ export default function ProfileView({
       try {
         const { data, error } = await supabase
           .from('members')
-          .select('id, name, email, role, password')
+          .select('id, name, email, role, password, avatar_url')
           .eq('email', userEmail)
           .single();
 
@@ -46,6 +57,9 @@ export default function ProfileView({
           if (data.name) setFullName(data.name);
           if (data.email) setEmail(data.email);
           if (typeof data.password === 'string') setDbPassword(data.password);
+          if (typeof data.avatar_url === 'string' && data.avatar_url) {
+            setAvatarUrl(data.avatar_url);
+          }
         }
       } catch {
         // Keep initial props if offline or in sandbox
@@ -57,12 +71,113 @@ export default function ProfileView({
     };
   }, [userEmail]);
 
-  const initials = (fullName || 'MI')
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() || '')
-    .join('') || 'MI';
+  const initials =
+    (fullName || 'MN')
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() || '')
+      .join('') || 'MN';
+
+  const persistAvatarToMember = async (nextUrl: string) => {
+    const targetEmail = email.trim() || userEmail;
+    try {
+      const query = supabase.from('members').update({ avatar_url: nextUrl });
+      const { error } = memberId
+        ? await query.eq('id', memberId)
+        : await query.eq('email', targetEmail);
+
+      if (error) throw error;
+      onProfileUpdated?.({
+        fullName: fullName.trim(),
+        email: targetEmail,
+        roleTitle: roleTitle.trim(),
+        avatarUrl: nextUrl
+      });
+      setStatusMessage({
+        type: 'success',
+        text: nextUrl ? 'Profile picture updated.' : 'Profile picture removed.'
+      });
+    } catch (err: any) {
+      onProfileUpdated?.({
+        fullName: fullName.trim(),
+        email: targetEmail,
+        roleTitle: roleTitle.trim(),
+        avatarUrl: nextUrl
+      });
+      setStatusMessage({
+        type: 'error',
+        text: err?.message || 'Could not save picture to database.'
+      });
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || uploadingAvatar) return;
+
+    if (!file.type.startsWith('image/')) {
+      setStatusMessage({ type: 'error', text: 'Please select a valid image file (PNG, JPG, WEBP).' });
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      setStatusMessage({ type: 'error', text: 'Image must be 2 MB or smaller.' });
+      return;
+    }
+
+    setUploadingAvatar(true);
+    setStatusMessage(null);
+
+    try {
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'png';
+      const safeSlug = (email.trim() || userEmail || 'member').replace(/[^a-zA-Z0-9]/g, '_');
+      const filePath = `${safeSlug}_${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (!uploadError) {
+        const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
+        const finalUrl = publicUrlData?.publicUrl || '';
+        setAvatarUrl(finalUrl);
+        await persistAvatarToMember(finalUrl);
+        setUploadingAvatar(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
+
+      // Fallback to Base64 data URL if 'avatars' bucket isn't created yet
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const dataUrl = typeof reader.result === 'string' ? reader.result : '';
+        setAvatarUrl(dataUrl);
+        await persistAvatarToMember(dataUrl);
+        setUploadingAvatar(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      };
+      reader.onerror = () => {
+        setStatusMessage({ type: 'error', text: 'Failed to read selected image.' });
+        setUploadingAvatar(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      };
+      reader.readAsDataURL(file);
+    } catch {
+      setStatusMessage({ type: 'error', text: 'Failed to process selected image.' });
+      setUploadingAvatar(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    if (uploadingAvatar) return;
+    setUploadingAvatar(true);
+    setStatusMessage(null);
+    setAvatarUrl('');
+    await persistAvatarToMember('');
+    setUploadingAvatar(false);
+  };
 
   const handleSaveDetails = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,11 +196,15 @@ export default function ProfileView({
     setStatusMessage(null);
 
     try {
-      const query = supabase.from('members').update({
+      const updatePayload: Record<string, any> = {
         name: cleanName,
         email: cleanEmail
-      });
+      };
+      if (avatarUrl) {
+        updatePayload.avatar_url = avatarUrl;
+      }
 
+      const query = supabase.from('members').update(updatePayload);
       const { data, error } = memberId
         ? await query.eq('id', memberId).select().single()
         : await query.eq('email', userEmail).select().single();
@@ -95,7 +214,12 @@ export default function ProfileView({
       }
 
       if (data?.id) setMemberId(data.id);
-      onProfileUpdated?.({ fullName: cleanName, email: cleanEmail, roleTitle: cleanRole });
+      onProfileUpdated?.({
+        fullName: cleanName,
+        email: cleanEmail,
+        roleTitle: cleanRole,
+        avatarUrl
+      });
       setStatusMessage({ type: 'success', text: 'Personal details saved to members table.' });
     } catch (err: any) {
       setStatusMessage({
@@ -160,7 +284,17 @@ export default function ProfileView({
 
   return (
     <div style={{ minHeight: '100vh', padding: '40px 20px', color: '#fff', position: 'relative', zIndex: 10 }}>
-      <div style={{ maxWidth: '880px', margin: '0 auto 24px auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
+      <div
+        style={{
+          maxWidth: '880px',
+          margin: '0 auto 24px auto',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '15px'
+        }}
+      >
         <div>
           <h1 style={{ fontSize: '1.8rem', textTransform: 'uppercase', letterSpacing: '1.5px', margin: '0 0 6px 0' }}>
             <span style={{ color: '#00ffff' }}>USER</span> PROFILE MANAGEMENT
@@ -198,13 +332,8 @@ export default function ProfileView({
             fontWeight: 'bold',
             fontSize: '0.88rem',
             backgroundColor:
-              statusMessage.type === 'success'
-                ? 'rgba(0, 255, 136, 0.14)'
-                : 'rgba(255, 68, 68, 0.14)',
-            border:
-              statusMessage.type === 'success'
-                ? '1px solid #00ff88'
-                : '1px solid #ff4444',
+              statusMessage.type === 'success' ? 'rgba(0, 255, 136, 0.14)' : 'rgba(255, 68, 68, 0.14)',
+            border: statusMessage.type === 'success' ? '1px solid #00ff88' : '1px solid #ff4444',
             color: statusMessage.type === 'success' ? '#00ff88' : '#ff7b7b'
           }}
         >
@@ -224,27 +353,104 @@ export default function ProfileView({
           boxShadow: '0 16px 40px rgba(0,0,0,0.65)'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', paddingBottom: '22px', marginBottom: '22px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-          <div
-            style={{
-              width: '56px',
-              height: '56px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #2196f3, #00e5ff)',
-              color: '#fff',
-              fontWeight: '800',
-              fontSize: '1.15rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0
-            }}
-          >
-            {initials}
+        {/* Profile Header with Editable Avatar */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '16px',
+            paddingBottom: '22px',
+            marginBottom: '22px',
+            borderBottom: '1px solid rgba(255,255,255,0.08)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              title="Click to upload profile picture"
+              style={{
+                width: '60px',
+                height: '60px',
+                borderRadius: '50%',
+                background: avatarUrl ? '#1a1a22' : 'linear-gradient(135deg, #2196f3, #00e5ff)',
+                color: '#fff',
+                fontWeight: '800',
+                fontSize: '1.15rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                border: '2px solid rgba(0, 229, 255, 0.45)',
+                padding: 0,
+                overflow: 'hidden',
+                cursor: 'pointer'
+              }}
+            >
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={fullName}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              ) : (
+                initials
+              )}
+            </button>
+
+            <div>
+              <div style={{ fontSize: '1.15rem', fontWeight: '700', color: '#fff' }}>{fullName}</div>
+              <div style={{ fontSize: '0.85rem', color: '#999' }}>Scicom MSC Berhad</div>
+            </div>
           </div>
-          <div>
-            <div style={{ fontSize: '1.15rem', fontWeight: '700', color: '#fff' }}>{fullName}</div>
-            <div style={{ fontSize: '0.85rem', color: '#999' }}>Scicom MSC Berhad</div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              style={{ display: 'none' }}
+            />
+            <button
+              type="button"
+              disabled={uploadingAvatar}
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                background: 'rgba(0, 229, 255, 0.14)',
+                border: '1px solid rgba(0, 229, 255, 0.4)',
+                color: '#00e5ff',
+                padding: '7px 14px',
+                borderRadius: '18px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                fontSize: '0.76rem'
+              }}
+            >
+              {uploadingAvatar ? 'Uploading...' : avatarUrl ? 'Change Photo' : 'Upload Photo'}
+            </button>
+
+            {avatarUrl && (
+              <button
+                type="button"
+                disabled={uploadingAvatar}
+                onClick={handleRemoveAvatar}
+                style={{
+                  background: 'rgba(255, 68, 68, 0.12)',
+                  border: '1px solid rgba(255, 68, 68, 0.35)',
+                  color: '#ff7b7b',
+                  padding: '7px 12px',
+                  borderRadius: '18px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  fontSize: '0.76rem'
+                }}
+              >
+                Remove
+              </button>
+            )}
           </div>
         </div>
 

@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 
 interface KnowledgeBaseProps {
   userRole: 'Admin' | 'NOC';
+  userName?: string;
+  userAvatarUrl?: string;
   customIncidents?: any[];
   setActiveTab: (tab: string) => void;
   onOpenAddCase: () => void;
@@ -11,6 +13,8 @@ interface KnowledgeBaseProps {
 
 export default function KnowledgeBase({
   userRole,
+  userName = 'NOC Engineer',
+  userAvatarUrl = '',
   customIncidents = [],
   setActiveTab,
   onOpenAddCase,
@@ -20,6 +24,14 @@ export default function KnowledgeBase({
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const safeIncidents = Array.isArray(customIncidents) ? customIncidents : [];
+
+  const initials =
+    (userName || 'MN')
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() || '')
+      .join('') || 'MN';
 
   const allCards = [
     {
@@ -78,33 +90,35 @@ export default function KnowledgeBase({
       image: '/images/task.png'
     },
     {
-    id: 'floormap',
-    title: 'Floor Map',
-    desc: 'Menara TA One floor levels, active projects, hours of operations, and operating days.',
-    tags: ['FLOORS', 'PROJECTS', 'HOURS'],
-    action: () => setActiveTab('floormap'),
-    btnText: 'View Floor Map',
-    image: '/images/map.png'
+      id: 'floormap',
+      title: 'Floor Map',
+      desc: 'Menara TA One floor levels, active projects, hours of operations, and operating days.',
+      tags: ['FLOORS', 'PROJECTS', 'HOURS'],
+      action: () => setActiveTab('floormap'),
+      btnText: 'View Floor Map',
+      image: '/images/map.png'
     }
   ];
 
-  const cards = allCards.filter(card => userRole === 'Admin' || !card.adminOnly);
+  const cards = allCards.filter((card) => userRole === 'Admin' || !card.adminOnly);
   const totalCards = cards.length;
 
   const nextSlide = () => setCurrentIndex((prev) => (prev + 1) % totalCards);
   const prevSlide = () => setCurrentIndex((prev) => (prev - 1 + totalCards) % totalCards);
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '40px 20px',
-      position: 'relative',
-      perspective: '1200px'
-    }}>
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px 20px',
+        position: 'relative',
+        perspective: '1200px'
+      }}
+    >
       {/* Cyber Laser Scanline Animation CSS */}
       <style>{`
         @keyframes scanline {
@@ -127,19 +141,81 @@ export default function KnowledgeBase({
       `}</style>
 
       {/* Upper-Right Buttons */}
-      <div style={{ position: 'absolute', top: '25px', right: '30px', display: 'flex', gap: '12px', zIndex: 100 }}>
-        <span style={{ padding: '8px 16px', borderRadius: '20px', background: 'rgba(0,255,255,0.1)', border: '1px solid rgba(0,255,255,0.3)', color: '#00ffff', fontSize: '0.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
+      <div style={{ position: 'absolute', top: '25px', right: '30px', display: 'flex', gap: '12px', alignItems: 'center', zIndex: 100, flexWrap: 'wrap' }}>
+        <span
+          style={{
+            padding: '8px 16px',
+            borderRadius: '20px',
+            background: 'rgba(0,255,255,0.1)',
+            border: '1px solid rgba(0,255,255,0.3)',
+            color: '#00ffff',
+            fontSize: '0.8rem',
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center'
+          }}
+        >
           Role: {userRole}
         </span>
+
         <button
           onClick={onOpenProfile}
-          style={{ background: 'rgba(255, 255, 255, 0.08)', border: '1px solid rgba(255, 255, 255, 0.2)', color: '#fff', padding: '8px 18px', borderRadius: '20px', cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem' }}
+          title="Open Profile Settings"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '9px',
+            background: 'rgba(255, 255, 255, 0.08)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            color: '#fff',
+            padding: '4px 16px 4px 5px',
+            borderRadius: '24px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            fontSize: '0.85rem'
+          }}
         >
-          Profile
+          <span
+            style={{
+              width: '30px',
+              height: '30px',
+              borderRadius: '50%',
+              background: userAvatarUrl ? '#1a1a22' : 'linear-gradient(135deg, #2196f3, #00e5ff)',
+              color: '#fff',
+              fontWeight: 800,
+              fontSize: '0.75rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+              flexShrink: 0
+            }}
+          >
+            {userAvatarUrl ? (
+              <img
+                src={userAvatarUrl}
+                alt={userName}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            ) : (
+              initials
+            )}
+          </span>
+          <span>Profile</span>
         </button>
+
         <button
           onClick={onLogout}
-          style={{ background: 'rgba(255, 51, 51, 0.15)', border: '1px solid rgba(255, 51, 51, 0.4)', color: '#ff3333', padding: '8px 18px', borderRadius: '20px', cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem' }}
+          style={{
+            background: 'rgba(255, 51, 51, 0.15)',
+            border: '1px solid rgba(255, 51, 51, 0.4)',
+            color: '#ff3333',
+            padding: '8px 18px',
+            borderRadius: '20px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            fontSize: '0.85rem'
+          }}
         >
           Logout
         </button>
@@ -170,7 +246,18 @@ export default function KnowledgeBase({
       </div>
 
       {/* Carousel Stage */}
-      <div style={{ position: 'relative', width: '100%', maxWidth: '1000px', height: '480px', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
+      <div
+        style={{
+          position: 'relative',
+          width: '100%',
+          maxWidth: '1000px',
+          height: '480px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10
+        }}
+      >
         {cards.map((card, index) => {
           let offset = (index - currentIndex + totalCards) % totalCards;
           if (offset > Math.floor(totalCards / 2)) {
@@ -182,7 +269,7 @@ export default function KnowledgeBase({
           const translateZ = Math.abs(offset) * -180;
           const rotateY = offset * -20;
           const scale = isActive ? 1 : 0.82;
-          const opacity = Math.abs(offset) > 1 ? 0 : (isActive ? 1 : 0.5);
+          const opacity = Math.abs(offset) > 1 ? 0 : isActive ? 1 : 0.5;
           const zIndex = 20 - Math.abs(offset);
 
           return (
@@ -216,15 +303,34 @@ export default function KnowledgeBase({
                 <img
                   src={card.image}
                   alt={card.title}
-                  style={{ width: '100%', height: '160px', backgroundColor: '#ffffff', objectFit: 'contain', padding: '15px', borderRadius: '14px', marginBottom: '20px', border: '1px solid rgba(255,255,255,0.2)' }}
+                  style={{
+                    width: '100%',
+                    height: '160px',
+                    backgroundColor: '#ffffff',
+                    objectFit: 'contain',
+                    padding: '15px',
+                    borderRadius: '14px',
+                    marginBottom: '20px',
+                    border: '1px solid rgba(255,255,255,0.2)'
+                  }}
                 />
 
                 <h3 style={{ color: '#fff', fontSize: '1.35rem', marginBottom: '10px', letterSpacing: '1px' }}>{card.title}</h3>
                 <p style={{ color: '#a0a0a0', fontSize: '0.88rem', marginBottom: '18px', lineHeight: '1.5', flex: 1 }}>{card.desc}</p>
 
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
-                  {card.tags.map(tag => (
-                    <span key={tag} style={{ border: '1px solid rgba(0,255,255,0.3)', color: '#00ffff', padding: '4px 10px', borderRadius: '12px', fontSize: '0.7rem', letterSpacing: '1px' }}>
+                  {card.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      style={{
+                        border: '1px solid rgba(0,255,255,0.3)',
+                        color: '#00ffff',
+                        padding: '4px 10px',
+                        borderRadius: '12px',
+                        fontSize: '0.7rem',
+                        letterSpacing: '1px'
+                      }}
+                    >
                       {tag}
                     </span>
                   ))}
@@ -261,13 +367,37 @@ export default function KnowledgeBase({
       <div style={{ display: 'flex', gap: '20px', marginTop: '30px', zIndex: 100 }}>
         <button
           onClick={prevSlide}
-          style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          style={{
+            width: '48px',
+            height: '48px',
+            borderRadius: '50%',
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.15)',
+            color: '#fff',
+            fontSize: '1.2rem',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
         >
           ←
         </button>
         <button
           onClick={nextSlide}
-          style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          style={{
+            width: '48px',
+            height: '48px',
+            borderRadius: '50%',
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.15)',
+            color: '#fff',
+            fontSize: '1.2rem',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
         >
           →
         </button>

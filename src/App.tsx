@@ -30,9 +30,16 @@ const DEFAULT_INCIDENTS = [
   }
 ];
 
+interface CurrentUserState {
+  email: string;
+  role: string;
+  name?: string;
+  avatarUrl?: string;
+}
+
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentUser, setCurrentUser] = useState<{ email: string; role: string; name?: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<CurrentUserState | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
@@ -68,8 +75,19 @@ export default function App() {
     syncIncidents();
   }, []);
 
-  const handleLoginTrigger = (userData: { email: string; role: string; name?: string }) => {
-    setCurrentUser(userData);
+  const handleLoginTrigger = (userData: {
+    email: string;
+    role: string;
+    name?: string;
+    avatar_url?: string;
+    avatarUrl?: string;
+  }) => {
+    setCurrentUser({
+      email: userData.email,
+      role: userData.role,
+      name: userData.name,
+      avatarUrl: userData.avatarUrl || userData.avatar_url || ''
+    });
 
     setIsLoading(true);
     setIsFadingOut(false);
@@ -96,6 +114,8 @@ export default function App() {
           {activeTab === 'home' && (
             <KnowledgeBase
               userRole={formattedRole}
+              userName={currentUser?.name || currentUser?.email || 'NOC Engineer'}
+              userAvatarUrl={currentUser?.avatarUrl || ''}
               customIncidents={incidents}
               setActiveTab={setActiveTab}
               onOpenAddCase={() => setActiveTab('addcase')}
@@ -149,9 +169,19 @@ export default function App() {
             <ProfileView
               userEmail={currentUser?.email || ''}
               userName={currentUser?.name || ''}
+              userAvatarUrl={currentUser?.avatarUrl || ''}
               onBack={() => setActiveTab('home')}
-              onProfileUpdated={({ fullName, email }) => {
-                setCurrentUser((prev) => (prev ? { ...prev, name: fullName, email } : prev));
+              onProfileUpdated={({ fullName, email, avatarUrl }) => {
+                setCurrentUser((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        name: fullName,
+                        email,
+                        avatarUrl: avatarUrl !== undefined ? avatarUrl : prev.avatarUrl
+                      }
+                    : prev
+                );
               }}
             />
           )}
