@@ -54,15 +54,17 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | TaskProgressStatus>('ALL');
   const [toast, setToast] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
 
   // Admin Add / Edit Modal State
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [editingTask, setEditingTask] = useState<NocTask | null>(null);
 
-  // NOC (and Admin) Progress & Comment Modal State
+  // NOC (and Admin) Progress + Comment Modal State
   const [progressTask, setProgressTask] = useState<NocTask | null>(null);
   const [progressStatus, setProgressStatus] = useState<TaskProgressStatus>('In Progress');
   const [progressComment, setProgressComment] = useState<string>('');
+  const [savingProgress, setSavingProgress] = useState(false);
 
   // Admin Form States
   const [formTitle, setFormTitle] = useState('');
@@ -84,15 +86,22 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
           setTasks(data);
         }
       } catch {
-        // Fallback to default local tasks in sandbox
+        // Keep default tasks if offline or table not yet seeded
       }
     }
     loadTasks();
   }, []);
 
   const showToast = (msg: string) => {
+    setErrorMsg('');
     setToast(msg);
     setTimeout(() => setToast(''), 3500);
+  };
+
+  const showError = (msg: string) => {
+    setToast('');
+    setErrorMsg(msg);
+    setTimeout(() => setErrorMsg(''), 5000);
   };
 
   const filteredTasks = useMemo(() => {
@@ -155,10 +164,14 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
     if (editingTask) {
       try {
         if (typeof editingTask.id === 'number') {
-          await supabase.from('noc_tasks').update(payload).eq('id', editingTask.id);
+          const { error } = await supabase
+            .from('noc_tasks')
+            .update(payload)
+            .eq('id', editingTask.id);
+          if (error) showError(`Database note: ${error.message} (saved locally)`);
         }
       } catch {
-        // Local fallback
+        // Local state still updates
       }
       setTasks((prev) =>
         prev.map((t) => (t.id === editingTask.id ? { ...t, ...payload } : t))
@@ -167,14 +180,18 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
     } else {
       let created: NocTask = { id: Date.now(), ...payload };
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('noc_tasks')
           .insert([payload])
           .select()
           .single();
-        if (data) created = data;
+        if (error) {
+          showError(`Database note: ${error.message} (saved locally)`);
+        } else if (data) {
+          created = data;
+        }
       } catch {
-        // Local fallback
+        // Local state still updates
       }
       setTasks((prev) => [created, ...prev]);
       showToast(`New task "${payload.title}" added.`);
@@ -200,39 +217,51 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
     showToast('Task removed.');
   };
 
-  // NOC (and Admin): Open Update Progress Modal with Comment
+  // NOC (and Admin): Open Update Progress Modal
   const handleOpenProgressModal = (task: NocTask) => {
     setProgressTask(task);
     setProgressStatus(normalizeStatus(task.status));
     setProgressComment(task.update_comment || '');
   };
 
+  // Save Progress State + Comment
   const handleSaveProgress = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!progressTask) return;
+    if (!progressTask || savingProgress) return;
+
+    setSavingProgress(true);
+    const updater = userEmail || userRole || 'NOC';
+    const cleanComment = progressComment.trim();
 
     const updateFields = {
       status: progressStatus,
-      update_comment: progressComment.trim(),
-      updated_by: userEmail || userRole
+      update_comment: cleanComment,
+      updated_by: updater
     };
 
     try {
       if (typeof progressTask.id === 'number') {
-        await supabase
+        const { error } = await supabase
           .from('noc_tasks')
           .update(updateFields)
           .eq('id', progressTask.id);
+        if (error) {
+          showError(`Could not sync to Supabase: ${error.message} (updated in view)`);
+        } else {
+          showToast(`Saved as ${progressStatus}.`);
+        }
+      } else {
+        showToast(`Updated as ${progressStatus}.`);
       }
     } catch {
-      // Local fallback
+      showToast(`Updated as ${progressStatus}.`);
     }
 
     setTasks((prev) =>
       prev.map((t) => (t.id === progressTask.id ? { ...t, ...updateFields } : t))
     );
+    setSavingProgress(false);
     setProgressTask(null);
-    showToast(`Task marked as ${progressStatus}.`);
   };
 
   return (
@@ -246,7 +275,7 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
           <p style={{ color: '#b0b0b0', fontSize: '0.9rem', margin: 0 }}>
             {isAdmin
               ? 'Admin mode: Add, edit, or delete tasks and review NOC progress comments.'
-              : 'NOC mode: Update status (In Progress / Completed) and log what you have done.'}
+              : 'NOC mode: Update status (In Progress / Completed) and add a comment on what you have done.'}
           </p>
         </div>
 
@@ -290,7 +319,7 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search task title, assignee, description, or update comment..."
+          placeholder="Search task title, assignee, description, or comment..."
           style={{
             flex: 1,
             minWidth: '260px',
@@ -326,6 +355,12 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
       {toast && (
         <div style={{ maxWidth: '1150px', margin: '0 auto 18px auto', backgroundColor: 'rgba(0, 255, 136, 0.15)', border: '1px solid #00ff88', color: '#00ff88', padding: '12px 18px', borderRadius: '12px', fontWeight: 'bold', fontSize: '0.88rem' }}>
           ✓ {toast}
+        </div>
+      )}
+
+      {errorMsg && (
+        <div style={{ maxWidth: '1150px', margin: '0 auto 18px auto', backgroundColor: 'rgba(255, 51, 51, 0.15)', border: '1px solid #ff4d4d', color: '#ff8080', padding: '12px 18px', borderRadius: '12px', fontWeight: 'bold', fontSize: '0.88rem' }}>
+          ! {errorMsg}
         </div>
       )}
 
@@ -439,17 +474,17 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
                   </div>
                 </div>
 
-                {/* Latest Update Comment & Updater Footer */}
+                {/* Comment & Last Updated Footer */}
                 <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <div style={{ fontSize: '0.84rem', color: task.update_comment ? '#e0e0e0' : '#777' }}>
+                  <div style={{ fontSize: '0.85rem', color: task.update_comment ? '#e6e6e6' : '#777' }}>
                     <strong style={{ color: '#00ffff', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.6px', marginRight: '8px' }}>
-                      Update Notes:
+                      What was done:
                     </strong>
-                    {task.update_comment || 'No update comment logged yet.'}
+                    {task.update_comment || 'No comment added yet.'}
                   </div>
                   {task.updated_by && (
                     <div style={{ fontSize: '0.75rem', color: '#888' }}>
-                      Updated by {task.updated_by}
+                      {currentStatus} • Updated by {task.updated_by}
                     </div>
                   )}
                 </div>
@@ -459,7 +494,7 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
         )}
       </div>
 
-      {/* NOC (AND ADMIN) UPDATE PROGRESS MODAL: STATUS + WHAT HAVE YOU DONE COMMENT */}
+      {/* UPDATE TASK PROGRESS MODAL: ONLY PROGRESS STATE + COMMENT */}
       {progressTask && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div style={{ width: '450px', backgroundColor: '#121216', border: '1px solid rgba(0,255,255,0.35)', borderRadius: '20px', padding: '28px' }}>
@@ -469,7 +504,7 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
             <form onSubmit={handleSaveProgress} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.75rem', color: '#aaa', marginBottom: '8px', textTransform: 'uppercase' }}>
-                  Status
+                  Progress State
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   {(['In Progress', 'Completed'] as TaskProgressStatus[]).map((stateOption) => {
@@ -504,7 +539,7 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
                 <textarea
                   rows={4}
                   required
-                  placeholder="Describe actions taken, findings, or handover notes..."
+                  placeholder="Write what you did for this task..."
                   value={progressComment}
                   onChange={(e) => setProgressComment(e.target.value)}
                   style={{
@@ -523,9 +558,10 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
               <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
                 <button
                   type="submit"
+                  disabled={savingProgress}
                   style={{ flex: 1, padding: '12px', background: 'linear-gradient(90deg, #8a2be2, #00ffff)', border: 'none', borderRadius: '20px', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}
                 >
-                  Save Update
+                  {savingProgress ? 'Saving...' : 'Save Progress'}
                 </button>
                 <button
                   type="button"
@@ -540,7 +576,7 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
         </div>
       )}
 
-      {/* ADMIN ADD / FULL EDIT MODAL */}
+      {/* ADMIN ADD / EDIT TASK MODAL */}
       {isAdmin && showAdminModal && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div style={{ width: '480px', maxHeight: '90vh', overflowY: 'auto', backgroundColor: '#121216', border: '1px solid rgba(0,255,255,0.35)', borderRadius: '20px', padding: '28px' }}>
@@ -595,7 +631,7 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', color: '#aaa', marginBottom: '5px', textTransform: 'uppercase' }}>Status</label>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: '#aaa', marginBottom: '5px', textTransform: 'uppercase' }}>Progress State</label>
                 <select
                   value={formStatus}
                   onChange={(e) => setFormStatus(e.target.value as TaskProgressStatus)}
@@ -607,10 +643,10 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', color: '#aaa', marginBottom: '5px', textTransform: 'uppercase' }}>Update Notes / Comment</label>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: '#aaa', marginBottom: '5px', textTransform: 'uppercase' }}>Comment / What Was Done</label>
                 <textarea
                   rows={2}
-                  placeholder="Optional progress or handover comment..."
+                  placeholder="Optional note on task progress..."
                   value={formComment}
                   onChange={(e) => setFormComment(e.target.value)}
                   style={{ width: '100%', padding: '10px', borderRadius: '10px', background: '#1c1c24', border: '1px solid #333', color: '#fff', resize: 'vertical' }}
