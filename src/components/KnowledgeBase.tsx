@@ -29,27 +29,27 @@ export default function KnowledgeBase({
   const [resolvedAvatar, setResolvedAvatar] = useState(userAvatarUrl);
 
   useEffect(() => {
-    setResolvedName(userName);
+    if (userName) setResolvedName(userName);
   }, [userName]);
 
   useEffect(() => {
-    setResolvedAvatar(userAvatarUrl);
+    if (userAvatarUrl) setResolvedAvatar(userAvatarUrl);
   }, [userAvatarUrl]);
 
   useEffect(() => {
     let active = true;
     async function hydrateUserProfile() {
-      if (!userEmail || (resolvedName && resolvedAvatar)) return;
+      if (!userEmail) return;
       try {
         const { data, error } = await supabase
           .from('members')
           .select('name, avatar_url')
-          .eq('email', userEmail)
-          .single();
+          .ilike('email', userEmail.trim())
+          .maybeSingle();
 
         if (!error && data && active) {
-          if (data.name && !resolvedName) setResolvedName(data.name);
-          if (data.avatar_url && !resolvedAvatar) setResolvedAvatar(data.avatar_url);
+          if (data.name) setResolvedName(data.name);
+          if (data.avatar_url) setResolvedAvatar(data.avatar_url);
         }
       } catch {
         // Silent fallback if offline or sandboxed
@@ -59,9 +59,10 @@ export default function KnowledgeBase({
     return () => {
       active = false;
     };
-  }, [userEmail, resolvedName, resolvedAvatar]);
+  }, [userEmail]);
 
-  const displayName = resolvedName?.trim() || userEmail?.split('@')[0] || 'NOC Engineer';
+  const rawName = resolvedName?.trim() || '';
+  const displayName = rawName && !rawName.includes('@') ? rawName : 'NOC Engineer';
 
   const safeIncidents = Array.isArray(customIncidents) ? customIncidents : [];
 
@@ -183,8 +184,8 @@ export default function KnowledgeBase({
           position: relative;
           display: inline-block;
           color: #ffffff;
-          font-weight: 700;
-          text-shadow: 0 0 10px rgba(255, 255, 255, 0.25);
+          font-weight: 800;
+          text-shadow: 0 0 12px rgba(255, 255, 255, 0.25);
         }
         .glitch-name::before,
         .glitch-name::after {
@@ -249,27 +250,27 @@ export default function KnowledgeBase({
         }
       `}</style>
 
-      {/* Upper-Left Company Logo + Greeting */}
+      {/* Upper-Left Company Logo + Greeting Below */}
       <div
         style={{
           position: 'absolute',
           top: '25px',
           left: '30px',
           display: 'flex',
-          alignItems: 'center',
-          gap: '16px',
-          flexWrap: 'wrap',
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          gap: '10px',
           zIndex: 100
         }}
       >
         <img src="/images/scicomlogo.png" alt="Scicom Logo" style={{ height: '44px', objectFit: 'contain' }} />
         <div
           style={{
-            fontSize: '0.95rem',
+            fontSize: '1.35rem',
             fontWeight: 600,
             color: '#e6e6e6',
-            letterSpacing: '0.3px',
-            whiteSpace: 'nowrap'
+            letterSpacing: '0.4px',
+            lineHeight: 1.25
           }}
         >
           Hi,{' '}
