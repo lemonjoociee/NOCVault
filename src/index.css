@@ -1683,4 +1683,12 @@ html, body {
   scrollbar-color: #8a2be2 rgba(18, 18, 22, 0.9);
 }
 
+.glitch-name {
+  position: relative;
+  display: inline-block;
+  color: #ffffff;
+  font-weight: 700;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.25);
+}
+
 }

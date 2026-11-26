@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { supabase } from './supabaseClient';
 
 interface KnowledgeBaseProps {
   userRole: 'Admin' | 'NOC';
   userName?: string;
+  userEmail?: string;
   userAvatarUrl?: string;
   customIncidents?: any[];
   setActiveTab: (tab: string) => void;
@@ -13,7 +15,8 @@ interface KnowledgeBaseProps {
 
 export default function KnowledgeBase({
   userRole,
-  userName = 'NOC Engineer',
+  userName = '',
+  userEmail = '',
   userAvatarUrl = '',
   customIncidents = [],
   setActiveTab,
@@ -22,11 +25,48 @@ export default function KnowledgeBase({
   onLogout
 }: KnowledgeBaseProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [resolvedName, setResolvedName] = useState(userName);
+  const [resolvedAvatar, setResolvedAvatar] = useState(userAvatarUrl);
+
+  useEffect(() => {
+    setResolvedName(userName);
+  }, [userName]);
+
+  useEffect(() => {
+    setResolvedAvatar(userAvatarUrl);
+  }, [userAvatarUrl]);
+
+  useEffect(() => {
+    let active = true;
+    async function hydrateUserProfile() {
+      if (!userEmail || (resolvedName && resolvedAvatar)) return;
+      try {
+        const { data, error } = await supabase
+          .from('members')
+          .select('name, avatar_url')
+          .eq('email', userEmail)
+          .single();
+
+        if (!error && data && active) {
+          if (data.name && !resolvedName) setResolvedName(data.name);
+          if (data.avatar_url && !resolvedAvatar) setResolvedAvatar(data.avatar_url);
+        }
+      } catch {
+        // Silent fallback if offline or sandboxed
+      }
+    }
+    hydrateUserProfile();
+    return () => {
+      active = false;
+    };
+  }, [userEmail, resolvedName, resolvedAvatar]);
+
+  const displayName = resolvedName?.trim() || userEmail?.split('@')[0] || 'NOC Engineer';
 
   const safeIncidents = Array.isArray(customIncidents) ? customIncidents : [];
 
   const initials =
-    (userName || 'MN')
+    (displayName || 'MN')
       .split(/\s+/)
       .filter(Boolean)
       .slice(0, 2)
@@ -119,7 +159,7 @@ export default function KnowledgeBase({
         perspective: '1200px'
       }}
     >
-      {/* Cyber Laser Scanline Animation CSS */}
+      {/* Cyber Laser Scanline & Greeting Glitch CSS */}
       <style>{`
         @keyframes scanline {
           0% { top: 0%; opacity: 0; }
@@ -138,10 +178,120 @@ export default function KnowledgeBase({
           animation: scanline 3.5s ease-in-out infinite;
           z-index: 5;
         }
+
+        .glitch-name {
+          position: relative;
+          display: inline-block;
+          color: #ffffff;
+          font-weight: 700;
+          text-shadow: 0 0 10px rgba(255, 255, 255, 0.25);
+        }
+        .glitch-name::before,
+        .glitch-name::after {
+          content: attr(data-text);
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: transparent;
+          pointer-events: none;
+        }
+        .glitch-name::before {
+          left: 2px;
+          text-shadow: -1.5px 0 #ff2a85;
+          clip-path: inset(0 0 0 0);
+          animation: glitchSliceTop 4.2s infinite linear alternate-reverse;
+        }
+        .glitch-name::after {
+          left: -2px;
+          text-shadow: 1.5px 0 #8a2be2;
+          clip-path: inset(0 0 0 0);
+          animation: glitchSliceBottom 3.4s infinite linear alternate-reverse;
+        }
+
+        @keyframes glitchSliceTop {
+          0%, 86%, 100% {
+            clip-path: inset(0 0 100% 0);
+            transform: translate(0, 0);
+          }
+          88% {
+            clip-path: inset(12% 0 58% 0);
+            transform: translate(-2px, -1px);
+          }
+          90% {
+            clip-path: inset(48% 0 22% 0);
+            transform: translate(2px, 1px);
+          }
+          92% {
+            clip-path: inset(8% 0 72% 0);
+            transform: translate(-1px, 0);
+          }
+        }
+
+        @keyframes glitchSliceBottom {
+          0%, 84%, 100% {
+            clip-path: inset(100% 0 0 0);
+            transform: translate(0, 0);
+          }
+          86% {
+            clip-path: inset(62% 0 10% 0);
+            transform: translate(2px, 1px);
+          }
+          89% {
+            clip-path: inset(25% 0 45% 0);
+            transform: translate(-2px, -1px);
+          }
+          91% {
+            clip-path: inset(70% 0 5% 0);
+            transform: translate(1px, 0);
+          }
+        }
       `}</style>
 
+      {/* Upper-Left Company Logo + Greeting */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '25px',
+          left: '30px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px',
+          flexWrap: 'wrap',
+          zIndex: 100
+        }}
+      >
+        <img src="/images/scicomlogo.png" alt="Scicom Logo" style={{ height: '44px', objectFit: 'contain' }} />
+        <div
+          style={{
+            fontSize: '0.95rem',
+            fontWeight: 600,
+            color: '#e6e6e6',
+            letterSpacing: '0.3px',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          Hi,{' '}
+          <strong className="glitch-name" data-text={displayName}>
+            {displayName}
+          </strong>
+        </div>
+      </div>
+
       {/* Upper-Right Buttons */}
-      <div style={{ position: 'absolute', top: '25px', right: '30px', display: 'flex', gap: '12px', alignItems: 'center', zIndex: 100, flexWrap: 'wrap' }}>
+      <div
+        style={{
+          position: 'absolute',
+          top: '25px',
+          right: '30px',
+          display: 'flex',
+          gap: '12px',
+          alignItems: 'center',
+          zIndex: 100,
+          flexWrap: 'wrap'
+        }}
+      >
         <span
           style={{
             padding: '8px 16px',
@@ -180,7 +330,7 @@ export default function KnowledgeBase({
               width: '30px',
               height: '30px',
               borderRadius: '50%',
-              background: userAvatarUrl ? '#1a1a22' : 'linear-gradient(135deg, #2196f3, #00e5ff)',
+              background: resolvedAvatar ? '#1a1a22' : 'linear-gradient(135deg, #2196f3, #00e5ff)',
               color: '#fff',
               fontWeight: 800,
               fontSize: '0.75rem',
@@ -191,10 +341,10 @@ export default function KnowledgeBase({
               flexShrink: 0
             }}
           >
-            {userAvatarUrl ? (
+            {resolvedAvatar ? (
               <img
-                src={userAvatarUrl}
-                alt={userName}
+                src={resolvedAvatar}
+                alt={displayName}
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             ) : (
@@ -219,11 +369,6 @@ export default function KnowledgeBase({
         >
           Logout
         </button>
-      </div>
-
-      {/* Upper-Left Company Logo */}
-      <div style={{ position: 'absolute', top: '25px', left: '30px', textAlign: 'center', zIndex: 100 }}>
-        <img src="/images/scicomlogo.png" alt="Scicom Logo" style={{ height: '48px', objectFit: 'contain' }} />
       </div>
 
       {/* Carousel Dots */}
