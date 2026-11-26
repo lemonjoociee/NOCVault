@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from './supabaseClient';
 
 interface TasksViewProps {
@@ -25,6 +25,7 @@ interface NocTask {
 }
 
 const PROFILE_CACHE_KEY = 'nocvault_member_profiles';
+const TASKS_CACHE_KEY = 'nocvault_noc_tasks';
 
 const DEFAULT_TASKS: NocTask[] = [
   {
@@ -89,6 +90,25 @@ const DEFAULT_TASKS: NocTask[] = [
   }
 ];
 
+function readCachedTasks(): NocTask[] {
+  try {
+    const raw = localStorage.getItem(TASKS_CACHE_KEY);
+    if (!raw) return DEFAULT_TASKS;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_TASKS;
+  } catch {
+    return DEFAULT_TASKS;
+  }
+}
+
+function writeCachedTasks(nextTasks: NocTask[]) {
+  try {
+    localStorage.setItem(TASKS_CACHE_KEY, JSON.stringify(nextTasks));
+  } catch {
+    // Ignore storage quota issues
+  }
+}
+
 function normalizeStatus(status?: string): TaskProgressStatus {
   return status === 'Completed' ? 'Completed' : 'In Progress';
 }
@@ -131,7 +151,7 @@ export default function TasksView({
 }: TasksViewProps) {
   const isAdmin = userRole?.toLowerCase() === 'admin';
 
-  const [tasks, setTasks] = useState<NocTask[]>(DEFAULT_TASKS);
+  const [tasks, setTasks] = useState<NocTask[]>(() => readCachedTasks());
   const [memberNamesByEmail, setMemberNamesByEmail] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | TaskProgressStatus>('ALL');
@@ -159,6 +179,26 @@ export default function TasksView({
   const [formStatus, setFormStatus] = useState<TaskProgressStatus>('In Progress');
   const [formDueDate, setFormDueDate] = useState('');
   const [formComment, setFormComment] = useState('');
+
+  const showToast = useCallback((msg: string) => {
+    setErrorMsg('');
+    setToast(msg);
+    setTimeout(() => setToast(''), 3500);
+  }, []);
+
+  const showError = useCallback((msg: string) => {
+    setToast('');
+    setErrorMsg(msg);
+    setTimeout(() => setErrorMsg(''), 5000);
+  }, []);
+
+  const updateTasksState = useCallback((updater: (prev: NocTask[]) => NocTask[]) => {
+    setTasks((prev) => {
+      const next = updater(prev);
+      writeCachedTasks(next);
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -239,35 +279,31 @@ export default function TasksView({
     return value;
   };
 
-  useEffect(() => {
-    async function loadTasks() {
-      try {
-        const { data, error } = await supabase
-          .from('noc_tasks')
-          .select('*')
-          .order('id', { ascending: true });
+  const syncTasksFromSupabase = useCallback(async (showFeedback = false) => {
+    try {
+      const { data, error } = await supabase
+        .from('noc_tasks')
+        .select('*')
+        .order('id', { ascending: true });
 
-        if (!error && data && data.length > 0) {
-          setTasks(data);
-        }
-      } catch {
-        // Keep default tasks in offline/sandbox mode
+      if (!error && Array.isArray(data) && data.length > 0) {
+        updateTasksState((prev) => {
+          const dbIds = new Set(data.map((d) => String(d.id)));
+          const localOnly = prev.filter((p) => !dbIds.has(String(p.id)) && typeof p.id === 'string');
+          return [...data, ...localOnly];
+        });
+        if (showFeedback) showToast('Synced latest tasks from database.');
+      } else if (error && showFeedback) {
+        showError(`Database read note: ${error.message} (showing cached tasks)`);
       }
+    } catch {
+      if (showFeedback) showError('Offline mode: showing cached tasks.');
     }
-    loadTasks();
-  }, []);
+  }, [showError, showToast, updateTasksState]);
 
-  const showToast = (msg: string) => {
-    setErrorMsg('');
-    setToast(msg);
-    setTimeout(() => setToast(''), 3500);
-  };
-
-  const showError = (msg: string) => {
-    setToast('');
-    setErrorMsg(msg);
-    setTimeout(() => setErrorMsg(''), 5000);
-  };
+  useEffect(() => {
+    syncTasksFromSupabase(false);
+  }, [syncTasksFromSupabase, userRole]);
 
   const toggleGivenExpand = (id: number | string) => {
     const key = String(id);
@@ -377,12 +413,12 @@ export default function TasksView({
       } catch {
         // Local fallback
       }
-      setTasks((prev) =>
+      updateTasksState((prev) =>
         prev.map((t) => (t.id === editingTask.id ? { ...t, ...payload } : t))
       );
       showToast(`Task "${payload.title}" updated.`);
     } else {
-      let created: NocTask = { id: Date.now(), ...payload };
+      let created: NocTask = { id: `local_${Date.now()}`, ...payload };
       try {
         const { data, error } = await supabase
           .from('noc_tasks')
@@ -397,7 +433,7 @@ export default function TasksView({
       } catch {
         // Local fallback
       }
-      setTasks((prev) => [...prev, created]);
+      updateTasksState((prev) => [...prev, created]);
       setExpandedGivenIds((prev) => ({ ...prev, [String(created.id)]: true }));
       showToast(`New task "${payload.title}" added.`);
     }
@@ -417,7 +453,7 @@ export default function TasksView({
     } catch {
       // Local fallback
     }
-    setTasks((prev) => prev.filter((t) => t.id !== task.id));
+    updateTasksState((prev) => prev.filter((t) => t.id !== task.id));
     showToast('Task removed.');
   };
 
@@ -454,7 +490,7 @@ export default function TasksView({
           .update(updateFields)
           .eq('id', progressTask.id);
         if (error) {
-          showError(`Could not sync to Supabase: ${error.message} (updated in view)`);
+          showError(`Could not sync to Supabase: ${error.message} (saved locally)`);
         } else {
           showToast(`Saved ${progressTask.title} - ${progressStatus}.`);
         }
@@ -465,7 +501,7 @@ export default function TasksView({
       showToast(`Updated ${progressTask.title} - ${progressStatus}.`);
     }
 
-    setTasks((prev) =>
+    updateTasksState((prev) =>
       prev.map((t) => (t.id === progressTask.id ? { ...t, ...updateFields } : t))
     );
     setExpandedUpdateIds((prev) => ({ ...prev, [String(progressTask.id)]: true }));
@@ -490,6 +526,24 @@ export default function TasksView({
 
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
           <button
+            type="button"
+            onClick={() => syncTasksFromSupabase(true)}
+            style={{
+              background: 'rgba(255, 255, 255, 0.06)',
+              border: '1px solid rgba(255, 255, 255, 0.18)',
+              color: '#e6e6e6',
+              padding: '10px 16px',
+              borderRadius: '30px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '0.82rem'
+            }}
+          >
+            ↻ Sync
+          </button>
+
+          <button
+            type="button"
             onClick={handleCopyAllUpdates}
             style={{
               background: 'rgba(0, 255, 255, 0.12)',
@@ -507,6 +561,7 @@ export default function TasksView({
 
           {isAdmin && (
             <button
+              type="button"
               onClick={handleOpenAdd}
               style={{
                 background: 'linear-gradient(90deg, #8a2be2, #00ffff)',
@@ -523,6 +578,7 @@ export default function TasksView({
           )}
 
           <button
+            type="button"
             onClick={onBack}
             style={{
               background: 'rgba(255,255,255,0.1)',
@@ -862,7 +918,7 @@ export default function TasksView({
         </div>
       </div>
 
-      {/* UPDATE TASK PROGRESS MODAL: ONLY PROGRESS STATE + BULLETED COMMENT */}
+      {/* UPDATE TASK PROGRESS MODAL */}
       {progressTask && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div style={{ width: '480px', backgroundColor: '#121216', border: '1px solid rgba(0,255,255,0.35)', borderRadius: '20px', padding: '28px' }}>
