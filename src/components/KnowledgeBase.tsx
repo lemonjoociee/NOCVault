@@ -29,11 +29,11 @@ export default function KnowledgeBase({
   const [resolvedAvatar, setResolvedAvatar] = useState(userAvatarUrl);
 
   useEffect(() => {
-    setResolvedName(userName);
+    if (userName) setResolvedName(userName);
   }, [userName]);
 
   useEffect(() => {
-    setResolvedAvatar(userAvatarUrl);
+    if (userAvatarUrl) setResolvedAvatar(userAvatarUrl);
   }, [userAvatarUrl]);
 
   useEffect(() => {
@@ -165,8 +165,16 @@ export default function KnowledgeBase({
         perspective: '1200px'
       }}
     >
-      {/* Cyber Laser Scanline & Greeting Glitch CSS */}
+      {/* Cyber Laser Scanline, Cocogoose Font & Greeting Glitch CSS */}
       <style>{`
+        @font-face {
+          font-family: 'CocogooseProBoldItalic';
+          src: url('/fonts/Cocogoose-Pro-Bold-Italic-trial.ttf') format('truetype');
+          font-weight: 700;
+          font-style: italic;
+          font-display: swap;
+        }
+
         @keyframes scanline {
           0% { top: 0%; opacity: 0; }
           10% { opacity: 0.8; }
@@ -188,8 +196,10 @@ export default function KnowledgeBase({
         .glitch-name {
           position: relative;
           display: inline-block;
+          font-family: 'CocogooseProBoldItalic', sans-serif;
           color: #ffffff;
-          font-weight: 800;
+          font-weight: 700;
+          font-style: italic;
           text-shadow: 0 0 12px rgba(255, 255, 255, 0.25);
         }
         .glitch-name::before,
@@ -200,6 +210,9 @@ export default function KnowledgeBase({
           left: 0;
           width: 100%;
           height: 100%;
+          font-family: inherit;
+          font-weight: inherit;
+          font-style: inherit;
           background: transparent;
           pointer-events: none;
         }
