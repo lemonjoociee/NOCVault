@@ -4,6 +4,7 @@ import { supabase } from './supabaseClient';
 interface TasksViewProps {
   userRole: string;
   userEmail?: string;
+  userName?: string;
   onBack: () => void;
 }
 
@@ -22,6 +23,8 @@ interface NocTask {
   update_notes?: string[];
   updated_by?: string;
 }
+
+const PROFILE_CACHE_KEY = 'nocvault_member_profiles';
 
 const DEFAULT_TASKS: NocTask[] = [
   {
@@ -107,18 +110,29 @@ function getUpdateBullets(task: NocTask): string[] {
   return [];
 }
 
-function formatTaskHandoverText(task: NocTask, index: number): string {
+function formatTaskHandoverText(
+  task: NocTask,
+  index: number,
+  resolveName: (raw?: string) => string
+): string {
   const statusLabel = normalizeStatus(task.status);
   const bullets = getUpdateBullets(task);
   const header = `${index + 1}) ${task.title} - ${statusLabel}`;
-  if (bullets.length === 0) return header;
-  return `${header}\n\n${bullets.map((b) => `· ${b}`).join('\n')}`;
+  const footer = task.updated_by ? `\nUpdated by ${resolveName(task.updated_by)}` : '';
+  if (bullets.length === 0) return `${header}${footer}`;
+  return `${header}\n\n${bullets.map((b) => `· ${b}`).join('\n')}${footer}`;
 }
 
-export default function TasksView({ userRole, userEmail = '', onBack }: TasksViewProps) {
+export default function TasksView({
+  userRole,
+  userEmail = '',
+  userName = '',
+  onBack
+}: TasksViewProps) {
   const isAdmin = userRole?.toLowerCase() === 'admin';
 
   const [tasks, setTasks] = useState<NocTask[]>(DEFAULT_TASKS);
+  const [memberNamesByEmail, setMemberNamesByEmail] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | TaskProgressStatus>('ALL');
   const [expandedGivenIds, setExpandedGivenIds] = useState<Record<string, boolean>>({});
@@ -145,6 +159,85 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
   const [formStatus, setFormStatus] = useState<TaskProgressStatus>('In Progress');
   const [formDueDate, setFormDueDate] = useState('');
   const [formComment, setFormComment] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    const initialMap: Record<string, string> = {};
+
+    try {
+      const cachedRaw = localStorage.getItem(PROFILE_CACHE_KEY);
+      if (cachedRaw) {
+        const parsed = JSON.parse(cachedRaw);
+        Object.entries(parsed).forEach(([emailKey, val]: [string, any]) => {
+          if (val?.name && !String(val.name).includes('@')) {
+            initialMap[emailKey.toLowerCase()] = String(val.name).trim();
+          }
+        });
+      }
+    } catch {
+      // Ignore storage fallback errors
+    }
+
+    if (userEmail && userName && !userName.includes('@')) {
+      initialMap[userEmail.trim().toLowerCase()] = userName.trim();
+    }
+
+    setMemberNamesByEmail(initialMap);
+
+    async function loadMembers() {
+      try {
+        const { data, error } = await supabase.from('members').select('name, email');
+        if (!error && Array.isArray(data) && active) {
+          setMemberNamesByEmail((prev) => {
+            const next = { ...prev };
+            data.forEach((m: any) => {
+              if (m?.email && m?.name && !String(m.name).includes('@')) {
+                next[String(m.email).trim().toLowerCase()] = String(m.name).trim();
+              }
+            });
+            return next;
+          });
+        }
+      } catch {
+        // Keep cached map if offline
+      }
+    }
+
+    loadMembers();
+    return () => {
+      active = false;
+    };
+  }, [userEmail, userName]);
+
+  const resolveUpdaterName = (raw?: string): string => {
+    const value = (raw || '').trim();
+    if (!value) return 'NOC Engineer';
+
+    if (
+      userEmail &&
+      value.toLowerCase() === userEmail.trim().toLowerCase() &&
+      userName &&
+      !userName.includes('@')
+    ) {
+      return userName.trim();
+    }
+
+    const mapped = memberNamesByEmail[value.toLowerCase()];
+    if (mapped) return mapped;
+
+    if (value.includes('@')) {
+      const localPart = value.split('@')[0] || '';
+      return (
+        localPart
+          .split(/[._-]+/)
+          .filter(Boolean)
+          .map((part) => (part[0] ? part[0].toUpperCase() + part.slice(1) : ''))
+          .join(' ') || value
+      );
+    }
+
+    return value;
+  };
 
   useEffect(() => {
     async function loadTasks() {
@@ -194,20 +287,22 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
       if (!matchesStatus) return false;
       if (!q) return true;
       const bullets = getUpdateBullets(t);
+      const updaterLabel = resolveUpdaterName(t.updated_by).toLowerCase();
       return (
         t.title?.toLowerCase().includes(q) ||
         t.description?.toLowerCase().includes(q) ||
         t.file_path?.toLowerCase().includes(q) ||
         t.assigned_to?.toLowerCase().includes(q) ||
+        updaterLabel.includes(q) ||
         bullets.some((b) => b.toLowerCase().includes(q)) ||
         (Array.isArray(t.checklist) && t.checklist.some((item) => item.toLowerCase().includes(q)))
       );
     });
-  }, [tasks, searchQuery, statusFilter]);
+  }, [tasks, searchQuery, statusFilter, memberNamesByEmail, userEmail, userName]);
 
   const handleCopyAllUpdates = async () => {
     const block = filteredTasks
-      .map((t, idx) => formatTaskHandoverText(t, idx))
+      .map((t, idx) => formatTaskHandoverText(t, idx, resolveUpdaterName))
       .join('\n\n');
     try {
       await navigator.clipboard.writeText(block);
@@ -252,6 +347,10 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
 
     const parsedChecklist = parseBulletLines(formChecklistText);
     const parsedNotes = parseBulletLines(formComment);
+    const currentActor =
+      (userName && !userName.includes('@') ? userName.trim() : '') ||
+      userEmail ||
+      'Admin';
 
     const payload = {
       title: formTitle.trim(),
@@ -263,7 +362,7 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
       due_date: formDueDate,
       update_comment: parsedNotes.join('\n'),
       update_notes: parsedNotes,
-      updated_by: userEmail || 'Admin'
+      updated_by: currentActor
     };
 
     if (editingTask) {
@@ -334,7 +433,11 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
     if (!progressTask || savingProgress) return;
 
     setSavingProgress(true);
-    const updater = userEmail || userRole || 'NOC';
+    const updater =
+      (userName && !userName.includes('@') ? userName.trim() : '') ||
+      userEmail ||
+      userRole ||
+      'NOC';
     const parsedNotes = parseBulletLines(progressComment);
 
     const updateFields = {
@@ -747,7 +850,7 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
 
                       {task.updated_by && (
                         <div style={{ fontSize: '0.74rem', color: '#8aa399', marginTop: '4px' }}>
-                          Updated by {task.updated_by}
+                          Updated by {resolveUpdaterName(task.updated_by)}
                         </div>
                       )}
                     </div>
@@ -814,27 +917,26 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
                     background: '#1c1c24',
                     border: '1px solid rgba(255,255,255,0.15)',
                     color: '#fff',
-                    fontSize: '0.88rem',
-                    lineHeight: '1.5',
+                    fontSize: '0.9rem',
                     resize: 'vertical'
                   }}
                 />
               </div>
 
-              <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
-                <button
-                  type="submit"
-                  disabled={savingProgress}
-                  style={{ flex: 1, padding: '12px', background: 'linear-gradient(90deg, #8a2be2, #00ffff)', border: 'none', borderRadius: '20px', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}
-                >
-                  {savingProgress ? 'Saving...' : 'Save Progress'}
-                </button>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '6px' }}>
                 <button
                   type="button"
                   onClick={() => setProgressTask(null)}
-                  style={{ flex: 1, padding: '12px', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '20px', color: '#fff', cursor: 'pointer' }}
+                  style={{ padding: '10px 18px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.2)', background: 'transparent', color: '#ccc', cursor: 'pointer' }}
                 >
                   Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingProgress}
+                  style={{ padding: '10px 22px', borderRadius: '20px', border: 'none', background: 'linear-gradient(90deg, #8a2be2, #00ffff)', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}
+                >
+                  {savingProgress ? 'Saving...' : 'Save Progress'}
                 </button>
               </div>
             </form>
@@ -842,88 +944,102 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
         </div>
       )}
 
-      {/* ADMIN ADD / EDIT TASK MODAL */}
+      {/* ADMIN ADD / EDIT MODAL */}
       {isAdmin && showAdminModal && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-          <div style={{ width: '500px', maxHeight: '90vh', overflowY: 'auto', backgroundColor: '#121216', border: '1px solid rgba(0,255,255,0.35)', borderRadius: '20px', padding: '28px' }}>
-            <h2 style={{ margin: '0 0 18px 0', color: '#00ffff', fontSize: '1.2rem' }}>
-              {editingTask ? 'Edit NOC Task' : 'Add New NOC Task'}
+          <div style={{ width: '520px', maxHeight: '90vh', overflowY: 'auto', backgroundColor: '#121216', border: '1px solid rgba(0,255,255,0.35)', borderRadius: '20px', padding: '28px' }}>
+            <h2 style={{ margin: '0 0 18px 0', color: '#00ffff', fontSize: '1.25rem' }}>
+              {editingTask ? 'Edit NOC Task' : 'Add NOC Task'}
             </h2>
 
             <form onSubmit={handleSaveAdminTask} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', color: '#aaa', marginBottom: '5px', textTransform: 'uppercase' }}>Task Title</label>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: '#aaa', marginBottom: '6px', textTransform: 'uppercase' }}>
+                  Task Title
+                </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Lenovo Headsets or Laptops"
+                  placeholder="e.g., Laptops"
                   value={formTitle}
                   onChange={(e) => setFormTitle(e.target.value)}
-                  style={{ width: '100%', padding: '10px', borderRadius: '10px', background: '#1c1c24', border: '1px solid #333', color: '#fff' }}
+                  style={{ width: '100%', padding: '11px', borderRadius: '10px', background: '#1c1c24', border: '1px solid rgba(255,255,255,0.15)', color: '#fff' }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', color: '#aaa', marginBottom: '5px', textTransform: 'uppercase' }}>Instruction / Summary</label>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: '#aaa', marginBottom: '6px', textTransform: 'uppercase' }}>
+                  Instruction / Summary
+                </label>
                 <textarea
                   rows={2}
-                  placeholder="Kindly find ... in ... and do the following:"
+                  required
+                  placeholder="Kindly find (2) Dell Latitude 7290 laptops with good battery in Celcom Cupboard and do the following:"
                   value={formDescription}
                   onChange={(e) => setFormDescription(e.target.value)}
-                  style={{ width: '100%', padding: '10px', borderRadius: '10px', background: '#1c1c24', border: '1px solid #333', color: '#fff', resize: 'vertical' }}
+                  style={{ width: '100%', padding: '11px', borderRadius: '10px', background: '#1c1c24', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', resize: 'vertical' }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', color: '#aaa', marginBottom: '5px', textTransform: 'uppercase' }}>Checklist Steps (one per line)</label>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: '#aaa', marginBottom: '6px', textTransform: 'uppercase' }}>
+                  Steps / Checklist (One bullet per line, optional)
+                </label>
                 <textarea
-                  rows={4}
-                  placeholder={"perform full system updates through OS, Support Assist & Store\ninstall 7-zip\nupdate the Laptop Setup Excel"}
+                  rows={5}
+                  placeholder={"perform full system updates through OS, Support Assist & Store\nensure basic apps + MS Office are installed\ninstall 7-zip"}
                   value={formChecklistText}
                   onChange={(e) => setFormChecklistText(e.target.value)}
-                  style={{ width: '100%', padding: '10px', borderRadius: '10px', background: '#1c1c24', border: '1px solid #333', color: '#fff', resize: 'vertical' }}
+                  style={{ width: '100%', padding: '11px', borderRadius: '10px', background: '#1c1c24', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', resize: 'vertical' }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', color: '#aaa', marginBottom: '5px', textTransform: 'uppercase' }}>File / Network Path (Optional)</label>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: '#aaa', marginBottom: '6px', textTransform: 'uppercase' }}>
+                  Excel / File Path (Optional)
+                </label>
                 <input
                   type="text"
-                  placeholder="e.g. \\10.1.5.201\Applications\Details\..."
+                  placeholder="\\10.1.5.201\Applications\Details\..."
                   value={formFilePath}
                   onChange={(e) => setFormFilePath(e.target.value)}
-                  style={{ width: '100%', padding: '10px', borderRadius: '10px', background: '#1c1c24', border: '1px solid #333', color: '#fff', fontFamily: 'monospace' }}
+                  style={{ width: '100%', padding: '11px', borderRadius: '10px', background: '#1c1c24', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontFamily: 'monospace' }}
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', color: '#aaa', marginBottom: '5px', textTransform: 'uppercase' }}>Assigned To</label>
+                  <label style={{ display: 'block', fontSize: '0.75rem', color: '#aaa', marginBottom: '6px', textTransform: 'uppercase' }}>
+                    Assigned To
+                  </label>
                   <input
                     type="text"
-                    placeholder="e.g. All NOC, Shahmi"
                     value={formAssignedTo}
                     onChange={(e) => setFormAssignedTo(e.target.value)}
-                    style={{ width: '100%', padding: '10px', borderRadius: '10px', background: '#1c1c24', border: '1px solid #333', color: '#fff' }}
+                    style={{ width: '100%', padding: '11px', borderRadius: '10px', background: '#1c1c24', border: '1px solid rgba(255,255,255,0.15)', color: '#fff' }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', color: '#aaa', marginBottom: '5px', textTransform: 'uppercase' }}>Due Date</label>
+                  <label style={{ display: 'block', fontSize: '0.75rem', color: '#aaa', marginBottom: '6px', textTransform: 'uppercase' }}>
+                    Due Date
+                  </label>
                   <input
                     type="date"
                     value={formDueDate}
                     onChange={(e) => setFormDueDate(e.target.value)}
-                    style={{ width: '100%', padding: '10px', borderRadius: '10px', background: '#1c1c24', border: '1px solid #333', color: '#fff' }}
+                    style={{ width: '100%', padding: '11px', borderRadius: '10px', background: '#1c1c24', border: '1px solid rgba(255,255,255,0.15)', color: '#fff' }}
                   />
                 </div>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', color: '#aaa', marginBottom: '5px', textTransform: 'uppercase' }}>Progress State</label>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: '#aaa', marginBottom: '6px', textTransform: 'uppercase' }}>
+                  Progress State
+                </label>
                 <select
                   value={formStatus}
                   onChange={(e) => setFormStatus(e.target.value as TaskProgressStatus)}
-                  style={{ width: '100%', padding: '10px', borderRadius: '10px', background: '#1c1c24', border: '1px solid #333', color: '#fff' }}
+                  style={{ width: '100%', padding: '11px', borderRadius: '10px', background: '#1c1c24', border: '1px solid rgba(255,255,255,0.15)', color: '#fff' }}
                 >
                   <option value="In Progress">In Progress</option>
                   <option value="Completed">Completed</option>
@@ -931,32 +1047,33 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', color: '#aaa', marginBottom: '5px', textTransform: 'uppercase' }}>Update Bullets (one per line)</label>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: '#aaa', marginBottom: '6px', textTransform: 'uppercase' }}>
+                  Progress Notes (One item per line, optional)
+                </label>
                 <textarea
                   rows={3}
-                  placeholder={"Located item in stock...\nUpdated tracker..."}
                   value={formComment}
                   onChange={(e) => setFormComment(e.target.value)}
-                  style={{ width: '100%', padding: '10px', borderRadius: '10px', background: '#1c1c24', border: '1px solid #333', color: '#fff', resize: 'vertical' }}
+                  style={{ width: '100%', padding: '11px', borderRadius: '10px', background: '#1c1c24', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', resize: 'vertical' }}
                 />
               </div>
 
-              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                <button
-                  type="submit"
-                  style={{ flex: 1, padding: '12px', background: 'linear-gradient(90deg, #8a2be2, #00ffff)', border: 'none', borderRadius: '20px', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}
-                >
-                  {editingTask ? 'Save Changes' : 'Create Task'}
-                </button>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '8px' }}>
                 <button
                   type="button"
                   onClick={() => {
                     setShowAdminModal(false);
                     setEditingTask(null);
                   }}
-                  style={{ flex: 1, padding: '12px', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '20px', color: '#fff', cursor: 'pointer' }}
+                  style={{ padding: '10px 18px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.2)', background: 'transparent', color: '#ccc', cursor: 'pointer' }}
                 >
                   Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{ padding: '10px 22px', borderRadius: '20px', border: 'none', background: 'linear-gradient(90deg, #8a2be2, #00ffff)', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}
+                >
+                  {editingTask ? 'Save Changes' : 'Create Task'}
                 </button>
               </div>
             </form>

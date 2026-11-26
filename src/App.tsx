@@ -316,6 +316,7 @@ export default function App() {
             <TasksView
               userRole={formattedRole}
               userEmail={currentUser?.email || ''}
+              userName={currentUser?.name || ''}
               onBack={() => setActiveTab('home')}
             />
           )}
