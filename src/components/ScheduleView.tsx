@@ -29,22 +29,11 @@ type BulkFieldType =
   | 'replacement'
   | 'remarks';
 
+const YEARS = [2026, 2027, 2028];
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
-
-function buildMonthOptions(startYear = 2026, endYear = 2028): string[] {
-  const list: string[] = [];
-  for (let y = startYear; y <= endYear; y++) {
-    for (const m of MONTH_NAMES) {
-      list.push(`${m} ${y}`);
-    }
-  }
-  return list;
-}
-
-const SCHEDULE_MONTHS = buildMonthOptions(2026, 2028);
 const DAY_LABELS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
 const KNOWN_STAFF = [
@@ -172,7 +161,10 @@ function getBadgeStyle(name: string) {
 export default function ScheduleView({ userRole, onBack }: ScheduleViewProps) {
   const isAdmin = userRole?.toLowerCase() === 'admin';
 
-  const [selectedMonth, setSelectedMonth] = useState('November 2026');
+  const [selectedYear, setSelectedYear] = useState<number>(2026);
+  const [selectedMonthName, setSelectedMonthName] = useState<string>('November');
+  const selectedMonth = `${selectedMonthName} ${selectedYear}`;
+
   const [rows, setRows] = useState<ScheduleRow[]>(() => generateMonthTemplate('November 2026'));
   const [searchQuery, setSearchQuery] = useState('');
   const [editingRow, setEditingRow] = useState<ScheduleRow | null>(null);
@@ -447,13 +439,15 @@ export default function ScheduleView({ userRole, onBack }: ScheduleViewProps) {
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Clean Split Year + Month Selectors */}
           <select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
+            aria-label="Select Year"
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
             style={{
-              padding: '10px 16px',
-              backgroundColor: 'rgba(18, 18, 22, 0.95)',
+              padding: '10px 14px',
+              backgroundColor: '#121216',
               border: '1px solid rgba(0, 255, 255, 0.3)',
               borderRadius: '20px',
               color: '#00ffff',
@@ -462,9 +456,31 @@ export default function ScheduleView({ userRole, onBack }: ScheduleViewProps) {
               cursor: 'pointer'
             }}
           >
-            {SCHEDULE_MONTHS.map((month) => (
-              <option key={month} value={month}>
-                {month}
+            {YEARS.map((yr) => (
+              <option key={yr} value={yr} style={{ backgroundColor: '#121216', color: '#fff' }}>
+                {yr}
+              </option>
+            ))}
+          </select>
+
+          <select
+            aria-label="Select Month"
+            value={selectedMonthName}
+            onChange={(e) => setSelectedMonthName(e.target.value)}
+            style={{
+              padding: '10px 16px',
+              backgroundColor: '#121216',
+              border: '1px solid rgba(0, 255, 255, 0.3)',
+              borderRadius: '20px',
+              color: '#00ffff',
+              fontWeight: 'bold',
+              fontSize: '0.85rem',
+              cursor: 'pointer'
+            }}
+          >
+            {MONTH_NAMES.map((mName) => (
+              <option key={mName} value={mName} style={{ backgroundColor: '#121216', color: '#fff' }}>
+                {mName}
               </option>
             ))}
           </select>
@@ -704,7 +720,7 @@ export default function ScheduleView({ userRole, onBack }: ScheduleViewProps) {
                     style={{ width: '100%', padding: '10px', borderRadius: '10px', background: '#1c1c24', border: '1px solid #333', color: '#fff' }}
                   >
                     {BULK_FIELD_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
+                      <option key={opt.value} value={opt.value} style={{ backgroundColor: '#1c1c24', color: '#fff' }}>
                         {opt.label}
                       </option>
                     ))}
