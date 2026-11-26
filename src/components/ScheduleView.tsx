@@ -20,6 +20,15 @@ interface ScheduleRow {
   remarks: string;
 }
 
+type BulkFieldType =
+  | 'day_shift'
+  | 'office_hours'
+  | 'night_shift'
+  | 'cyberjaya'
+  | 'leaves'
+  | 'replacement'
+  | 'remarks';
+
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'
@@ -37,6 +46,28 @@ function buildMonthOptions(startYear = 2026, endYear = 2028): string[] {
 
 const SCHEDULE_MONTHS = buildMonthOptions(2026, 2028);
 const DAY_LABELS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+
+const KNOWN_STAFF = [
+  'Izzul',
+  'Dani',
+  'Naz Han',
+  'Shahmi',
+  'Rajeev',
+  'Nina',
+  'Sabbir',
+  'Kaven',
+  'Vikneswaran'
+];
+
+const BULK_FIELD_OPTIONS: { value: BulkFieldType; label: string }[] = [
+  { value: 'day_shift', label: 'Day Shift' },
+  { value: 'office_hours', label: 'Office Hours' },
+  { value: 'night_shift', label: 'Night Shift' },
+  { value: 'cyberjaya', label: 'Cyberjaya' },
+  { value: 'leaves', label: 'Leaves' },
+  { value: 'replacement', label: 'Replacement' },
+  { value: 'remarks', label: 'Remarks' }
+];
 
 const NOV_2026_OVERRIDES: Record<number, Partial<ScheduleRow>> = {
   1: { day_shift: 'Izzul', night_shift: 'Naz Han' },
@@ -148,7 +179,14 @@ export default function ScheduleView({ userRole, onBack }: ScheduleViewProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [toast, setToast] = useState('');
 
-  // Form state for Add / Edit
+  // Bulk Assign Modal State (One Person / One Month)
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [bulkPerson, setBulkPerson] = useState('Izzul');
+  const [bulkField, setBulkField] = useState<BulkFieldType>('day_shift');
+  const [selectedDays, setSelectedDays] = useState<number[]>([]);
+  const [savingBulk, setSavingBulk] = useState(false);
+
+  // Single-Day Form State
   const [dayNum, setDayNum] = useState<number>(1);
   const [dayName, setDayName] = useState('MON');
   const [dayShift, setDayShift] = useState('');
@@ -202,6 +240,103 @@ export default function ScheduleView({ userRole, onBack }: ScheduleViewProps) {
       r.remarks?.toLowerCase().includes(q)
     );
   }, [rows, searchQuery]);
+
+  const openBulkModal = () => {
+    if (!isAdmin) return;
+    const weekdayNums = rows
+      .filter((r) => r.day_name !== 'SAT' && r.day_name !== 'SUN')
+      .map((r) => r.day_num);
+    setBulkPerson('Izzul');
+    setBulkField('day_shift');
+    setSelectedDays(weekdayNums);
+    setShowBulkModal(true);
+  };
+
+  const toggleDaySelection = (d: number) => {
+    setSelectedDays((prev) =>
+      prev.includes(d) ? prev.filter((item) => item !== d) : [...prev, d].sort((a, b) => a - b)
+    );
+  };
+
+  const selectPresetDays = (preset: 'ALL' | 'WEEKDAYS' | 'WEEKENDS' | 'CLEAR') => {
+    if (preset === 'CLEAR') {
+      setSelectedDays([]);
+      return;
+    }
+    if (preset === 'ALL') {
+      setSelectedDays(rows.map((r) => r.day_num));
+      return;
+    }
+    if (preset === 'WEEKDAYS') {
+      setSelectedDays(
+        rows.filter((r) => r.day_name !== 'SAT' && r.day_name !== 'SUN').map((r) => r.day_num)
+      );
+      return;
+    }
+    if (preset === 'WEEKENDS') {
+      setSelectedDays(
+        rows.filter((r) => r.day_name === 'SAT' || r.day_name === 'SUN').map((r) => r.day_num)
+      );
+    }
+  };
+
+  const applyValueToRow = (row: ScheduleRow, person: string, field: BulkFieldType): ScheduleRow => {
+    const cleanPerson = person.trim();
+    if (field === 'office_hours') {
+      const currentList = Array.isArray(row.office_hours) ? row.office_hours : [];
+      if (!cleanPerson) return { ...row, office_hours: [] };
+      const nextList = currentList.includes(cleanPerson)
+        ? currentList
+        : [...currentList, cleanPerson];
+      return { ...row, office_hours: nextList };
+    }
+    return { ...row, [field]: cleanPerson };
+  };
+
+  const handleBulkSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isAdmin || selectedDays.length === 0 || savingBulk) return;
+
+    setSavingBulk(true);
+    const updatedRows = rows.map((row) =>
+      selectedDays.includes(row.day_num) ? applyValueToRow(row, bulkPerson, bulkField) : row
+    );
+
+    try {
+      const changedRows = updatedRows.filter((r) => selectedDays.includes(r.day_num));
+      for (const item of changedRows) {
+        const recordPayload = {
+          schedule_month: selectedMonth,
+          day_num: item.day_num,
+          day_name: item.day_name,
+          day_shift: item.day_shift,
+          office_hours: item.office_hours,
+          night_shift: item.night_shift,
+          cyberjaya: item.cyberjaya,
+          leaves: item.leaves,
+          replacement: item.replacement,
+          remarks: item.remarks
+        };
+
+        if (typeof item.id === 'number') {
+          await supabase.from('noc_schedule').update(recordPayload).eq('id', item.id);
+        } else {
+          await supabase.from('noc_schedule').insert([recordPayload]);
+        }
+      }
+    } catch {
+      // Keep local update if offline/sandbox
+    }
+
+    setRows(updatedRows);
+    const fieldLabel = BULK_FIELD_OPTIONS.find((f) => f.value === bulkField)?.label || bulkField;
+    setToast(
+      `Assigned "${bulkPerson || 'Cleared'}" to ${fieldLabel} for ${selectedDays.length} day(s) in ${selectedMonth}.`
+    );
+    setSavingBulk(false);
+    setShowBulkModal(false);
+    setTimeout(() => setToast(''), 4000);
+  };
 
   const openAddModal = () => {
     if (!isAdmin) return;
@@ -307,7 +442,7 @@ export default function ScheduleView({ userRole, onBack }: ScheduleViewProps) {
           </h1>
           <p style={{ color: '#b0b0b0', fontSize: '0.88rem', margin: 0 }}>
             {isAdmin
-              ? 'Admin mode: Add or edit shift assignments, leaves, and replacements across upcoming years.'
+              ? 'Admin mode: Bulk-assign one person across a month, or edit individual days.'
               : 'View-only mode: Shift roster, Cyberjaya coverage, leaves, and replacements.'}
           </p>
         </div>
@@ -335,20 +470,37 @@ export default function ScheduleView({ userRole, onBack }: ScheduleViewProps) {
           </select>
 
           {isAdmin && (
-            <button
-              onClick={openAddModal}
-              style={{
-                background: 'linear-gradient(90deg, #8a2be2, #00ffff)',
-                border: 'none',
-                color: '#fff',
-                padding: '10px 20px',
-                borderRadius: '30px',
-                cursor: 'pointer',
-                fontWeight: 'bold'
-              }}
-            >
-              + Add Schedule Day
-            </button>
+            <>
+              <button
+                onClick={openBulkModal}
+                style={{
+                  background: 'rgba(255, 152, 0, 0.18)',
+                  border: '1px solid #ff9800',
+                  color: '#ff9800',
+                  padding: '10px 18px',
+                  borderRadius: '30px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold'
+                }}
+              >
+                Bulk Assign Month
+              </button>
+
+              <button
+                onClick={openAddModal}
+                style={{
+                  background: 'linear-gradient(90deg, #8a2be2, #00ffff)',
+                  border: 'none',
+                  color: '#fff',
+                  padding: '10px 20px',
+                  borderRadius: '30px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold'
+                }}
+              >
+                + Add Schedule Day
+              </button>
+            </>
           )}
 
           <button
@@ -510,7 +662,139 @@ export default function ScheduleView({ userRole, onBack }: ScheduleViewProps) {
         </table>
       </div>
 
-      {/* ADMIN ADD / EDIT MODAL */}
+      {/* BULK ASSIGN ONE PERSON FOR ONE MONTH MODAL */}
+      {isAdmin && showBulkModal && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+          <div style={{ width: '500px', maxHeight: '90vh', overflowY: 'auto', backgroundColor: '#121216', border: '1px solid rgba(255,152,0,0.45)', borderRadius: '20px', padding: '28px' }}>
+            <h2 style={{ margin: '0 0 6px 0', color: '#ff9800', fontSize: '1.2rem' }}>
+              Bulk Assign — {selectedMonth}
+            </h2>
+            <p style={{ margin: '0 0 18px 0', color: '#aaa', fontSize: '0.84rem' }}>
+              Assign one person or note across multiple days in {selectedMonth} at once.
+            </p>
+
+            <form onSubmit={handleBulkSave} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.72rem', color: '#aaa', marginBottom: '5px', textTransform: 'uppercase' }}>
+                    Person / Value
+                  </label>
+                  <input
+                    list="bulk-staff-list"
+                    type="text"
+                    value={bulkPerson}
+                    onChange={(e) => setBulkPerson(e.target.value)}
+                    placeholder="Select or type name..."
+                    style={{ width: '100%', padding: '10px', borderRadius: '10px', background: '#1c1c24', border: '1px solid #333', color: '#fff' }}
+                  />
+                  <datalist id="bulk-staff-list">
+                    {KNOWN_STAFF.map((name) => (
+                      <option key={name} value={name} />
+                    ))}
+                  </datalist>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.72rem', color: '#aaa', marginBottom: '5px', textTransform: 'uppercase' }}>
+                    Shift / Column
+                  </label>
+                  <select
+                    value={bulkField}
+                    onChange={(e) => setBulkField(e.target.value as BulkFieldType)}
+                    style={{ width: '100%', padding: '10px', borderRadius: '10px', background: '#1c1c24', border: '1px solid #333', color: '#fff' }}
+                  >
+                    {BULK_FIELD_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+                  <label style={{ fontSize: '0.72rem', color: '#aaa', textTransform: 'uppercase' }}>
+                    Days Selected ({selectedDays.length})
+                  </label>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    <button type="button" onClick={() => selectPresetDays('WEEKDAYS')} style={{ padding: '4px 9px', borderRadius: '8px', border: '1px solid #333', background: '#1c1c24', color: '#00ffff', fontSize: '0.72rem', cursor: 'pointer' }}>
+                      Weekdays
+                    </button>
+                    <button type="button" onClick={() => selectPresetDays('WEEKENDS')} style={{ padding: '4px 9px', borderRadius: '8px', border: '1px solid #333', background: '#1c1c24', color: '#ff9800', fontSize: '0.72rem', cursor: 'pointer' }}>
+                      Weekends
+                    </button>
+                    <button type="button" onClick={() => selectPresetDays('ALL')} style={{ padding: '4px 9px', borderRadius: '8px', border: '1px solid #333', background: '#1c1c24', color: '#fff', fontSize: '0.72rem', cursor: 'pointer' }}>
+                      All Days
+                    </button>
+                    <button type="button" onClick={() => selectPresetDays('CLEAR')} style={{ padding: '4px 9px', borderRadius: '8px', border: '1px solid #333', background: '#1c1c24', color: '#ff6666', fontSize: '0.72rem', cursor: 'pointer' }}>
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px' }}>
+                  {rows.map((r) => {
+                    const active = selectedDays.includes(r.day_num);
+                    return (
+                      <button
+                        key={r.day_num}
+                        type="button"
+                        onClick={() => toggleDaySelection(r.day_num)}
+                        style={{
+                          padding: '7px 4px',
+                          borderRadius: '8px',
+                          border: active ? '1px solid #00ffff' : '1px solid rgba(255,255,255,0.12)',
+                          background: active ? 'rgba(0,255,255,0.2)' : '#1a1a22',
+                          color: active ? '#00ffff' : '#ccc',
+                          cursor: 'pointer',
+                          fontSize: '0.75rem',
+                          fontWeight: active ? 'bold' : 'normal',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: '1px'
+                        }}
+                      >
+                        <span>{r.day_num}</span>
+                        <span style={{ fontSize: '0.62rem', opacity: 0.75 }}>{r.day_name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                <button
+                  type="submit"
+                  disabled={savingBulk || selectedDays.length === 0}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    background: 'linear-gradient(90deg, #ff9800, #00ffff)',
+                    border: 'none',
+                    borderRadius: '20px',
+                    color: '#000',
+                    fontWeight: 'bold',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {savingBulk ? 'Applying...' : `Apply to ${selectedDays.length} Day(s)`}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowBulkModal(false)}
+                  style={{ flex: 1, padding: '12px', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '20px', color: '#fff', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ADMIN ADD / EDIT SINGLE DAY MODAL */}
       {isAdmin && (isAdding || editingRow) && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div style={{ width: '460px', maxHeight: '90vh', overflowY: 'auto', backgroundColor: '#121216', border: '1px solid rgba(0,255,255,0.35)', borderRadius: '20px', padding: '28px' }}>
