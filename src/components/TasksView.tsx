@@ -13,6 +13,8 @@ interface NocTask {
   id: number | string;
   title: string;
   description: string;
+  checklist?: string[];
+  file_path?: string;
   assigned_to: string;
   status: TaskProgressStatus | string;
   due_date: string;
@@ -23,28 +25,49 @@ interface NocTask {
 const DEFAULT_TASKS: NocTask[] = [
   {
     id: 1,
-    title: 'Daily TM Gateway Health & Latency Check',
-    description: 'Verify upstream gateway response times, packet loss, and active SIP/auth queues during shift handover.',
+    title: 'Lenovo Headsets',
+    description: 'Kindly find Lenovo headsets in Mozart 2.0 (ICT Stock) and update the serial numbers on the Excel.',
+    file_path: '\\\\10.1.5.201\\Applications\\Details\\Lenovo Headsets - ICT Stock.xlsx',
+    checklist: [],
     assigned_to: 'All NOC',
     status: 'In Progress',
     due_date: '2026-11-26',
-    update_comment: 'Checked primary gateway latency; upstream response normal.',
-    updated_by: 'izzul.azhar@scicom.com.my'
+    update_comment: '',
+    updated_by: ''
   },
   {
     id: 2,
-    title: 'Weekly SSL Certificate Expiry Audit',
-    description: 'Check expiring TLS certificates across Cyberjaya and primary production endpoints.',
+    title: 'Laptops',
+    description: 'Kindly find (2) Dell Latitude 7290 laptops with good battery in Celcom Cupboard and do the following:',
+    file_path: '',
+    checklist: [
+      'perform full system updates through OS, Support Assist & Store',
+      'ensure basic apps + MS Office are installed',
+      'install 7-zip',
+      'install CMS Supervisor R19, Avaya AIC and Avaya One-X Communicator',
+      "join domain as 'ASU-GAVIN-NB' and 'ASU-JACK-NB'",
+      'install Anydesk, Ninja and Bitdefender',
+      'prep necessary forms || #1391328',
+      'update the Laptop Setup Excel',
+      'keep each laptop together with its charger in a separate bag'
+    ],
     assigned_to: 'Shahmi',
     status: 'In Progress',
     due_date: '2026-11-28',
     update_comment: '',
-    updated_by: 'izzul.azhar@scicom.com.my'
+    updated_by: ''
   }
 ];
 
 function normalizeStatus(status?: string): TaskProgressStatus {
   return status === 'Completed' ? 'Completed' : 'In Progress';
+}
+
+function parseChecklistLines(raw: string): string[] {
+  return raw
+    .split('\n')
+    .map((line) => line.replace(/^[\s•\-*·]+/, '').trim())
+    .filter(Boolean);
 }
 
 export default function TasksView({ userRole, userEmail = '', onBack }: TasksViewProps) {
@@ -69,6 +92,8 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
   // Admin Form States
   const [formTitle, setFormTitle] = useState('');
   const [formDescription, setFormDescription] = useState('');
+  const [formFilePath, setFormFilePath] = useState('');
+  const [formChecklistText, setFormChecklistText] = useState('');
   const [formAssignedTo, setFormAssignedTo] = useState('All NOC');
   const [formStatus, setFormStatus] = useState<TaskProgressStatus>('In Progress');
   const [formDueDate, setFormDueDate] = useState('');
@@ -80,13 +105,13 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
         const { data, error } = await supabase
           .from('noc_tasks')
           .select('*')
-          .order('id', { ascending: false });
+          .order('id', { ascending: true });
 
         if (!error && data && data.length > 0) {
           setTasks(data);
         }
       } catch {
-        // Keep default tasks if offline or table not yet seeded
+        // Keep default tasks in offline/sandbox mode
       }
     }
     loadTasks();
@@ -114,18 +139,21 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
       return (
         t.title?.toLowerCase().includes(q) ||
         t.description?.toLowerCase().includes(q) ||
+        t.file_path?.toLowerCase().includes(q) ||
         t.assigned_to?.toLowerCase().includes(q) ||
-        t.update_comment?.toLowerCase().includes(q)
+        t.update_comment?.toLowerCase().includes(q) ||
+        (Array.isArray(t.checklist) && t.checklist.some((item) => item.toLowerCase().includes(q)))
       );
     });
   }, [tasks, searchQuery, statusFilter]);
 
-  // Admin: Open Add Modal
   const handleOpenAdd = () => {
     if (!isAdmin) return;
     setEditingTask(null);
     setFormTitle('');
     setFormDescription('');
+    setFormFilePath('');
+    setFormChecklistText('');
     setFormAssignedTo('All NOC');
     setFormStatus('In Progress');
     setFormDueDate('');
@@ -133,12 +161,13 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
     setShowAdminModal(true);
   };
 
-  // Admin: Open Edit Modal
   const handleOpenEdit = (task: NocTask) => {
     if (!isAdmin) return;
     setEditingTask(task);
     setFormTitle(task.title);
     setFormDescription(task.description || '');
+    setFormFilePath(task.file_path || '');
+    setFormChecklistText(Array.isArray(task.checklist) ? task.checklist.join('\n') : '');
     setFormAssignedTo(task.assigned_to || 'All NOC');
     setFormStatus(normalizeStatus(task.status));
     setFormDueDate(task.due_date || '');
@@ -146,14 +175,17 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
     setShowAdminModal(true);
   };
 
-  // Admin: Save New or Edited Task
   const handleSaveAdminTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAdmin || !formTitle.trim()) return;
 
+    const parsedChecklist = parseChecklistLines(formChecklistText);
+
     const payload = {
       title: formTitle.trim(),
       description: formDescription.trim(),
+      file_path: formFilePath.trim(),
+      checklist: parsedChecklist,
       assigned_to: formAssignedTo.trim() || 'All NOC',
       status: formStatus,
       due_date: formDueDate,
@@ -171,7 +203,7 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
           if (error) showError(`Database note: ${error.message} (saved locally)`);
         }
       } catch {
-        // Local state still updates
+        // Local fallback
       }
       setTasks((prev) =>
         prev.map((t) => (t.id === editingTask.id ? { ...t, ...payload } : t))
@@ -191,9 +223,9 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
           created = data;
         }
       } catch {
-        // Local state still updates
+        // Local fallback
       }
-      setTasks((prev) => [created, ...prev]);
+      setTasks((prev) => [...prev, created]);
       showToast(`New task "${payload.title}" added.`);
     }
 
@@ -201,7 +233,6 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
     setEditingTask(null);
   };
 
-  // Admin: Delete Task
   const handleDeleteTask = async (task: NocTask) => {
     if (!isAdmin) return;
     if (!window.confirm(`Delete task "${task.title}"?`)) return;
@@ -217,14 +248,12 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
     showToast('Task removed.');
   };
 
-  // NOC (and Admin): Open Update Progress Modal
   const handleOpenProgressModal = (task: NocTask) => {
     setProgressTask(task);
     setProgressStatus(normalizeStatus(task.status));
     setProgressComment(task.update_comment || '');
   };
 
-  // Save Progress State + Comment
   const handleSaveProgress = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!progressTask || savingProgress) return;
@@ -270,12 +299,12 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
       <div style={{ maxWidth: '1150px', margin: '0 auto 24px auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
         <div>
           <h1 style={{ fontSize: '1.8rem', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '5px' }}>
-            <span style={{ color: '#00ffff' }}>NOC</span> Operations Tasks
+            <span style={{ color: '#00ffff' }}>NOC</span> Tasks
           </h1>
           <p style={{ color: '#b0b0b0', fontSize: '0.9rem', margin: 0 }}>
             {isAdmin
-              ? 'Admin mode: Add, edit, or delete tasks and review NOC progress comments.'
-              : 'NOC mode: Update status (In Progress / Completed) and add a comment on what you have done.'}
+              ? 'Admin mode: Add, edit, or delete shift tasks and review comments.'
+              : 'NOC mode: Mark tasks In Progress or Completed and comment on what you have done.'}
           </p>
         </div>
 
@@ -319,7 +348,7 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search task title, assignee, description, or comment..."
+          placeholder="Search task title, steps, path, assignee, or comment..."
           style={{
             flex: 1,
             minWidth: '260px',
@@ -364,34 +393,36 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
         </div>
       )}
 
-      {/* Task Cards List */}
-      <div style={{ maxWidth: '1150px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* Numbered Handover Task Cards */}
+      <div style={{ maxWidth: '1150px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '18px' }}>
         {filteredTasks.length === 0 ? (
           <div style={{ backgroundColor: 'rgba(18, 18, 22, 0.85)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '40px', textAlign: 'center', color: '#888' }}>
             No tasks found matching your filter.
           </div>
         ) : (
-          filteredTasks.map((task) => {
+          filteredTasks.map((task, index) => {
             const currentStatus = normalizeStatus(task.status);
             const isDone = currentStatus === 'Completed';
+            const checklistItems = Array.isArray(task.checklist) ? task.checklist : [];
 
             return (
               <div
                 key={task.id}
                 style={{
-                  backgroundColor: 'rgba(18, 18, 22, 0.9)',
-                  border: '1px solid rgba(255,255,255,0.1)',
+                  backgroundColor: 'rgba(18, 18, 22, 0.92)',
+                  border: '1px solid rgba(255,255,255,0.12)',
                   borderRadius: '18px',
-                  padding: '22px 26px',
-                  boxShadow: '0 12px 32px rgba(0,0,0,0.55)',
+                  padding: '24px 28px',
+                  boxShadow: '0 14px 36px rgba(0,0,0,0.6)',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '12px'
                 }}
               >
+                {/* Top Meta + Action Buttons */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
-                  <div style={{ maxWidth: '72%' }}>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '6px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxWidth: '74%' }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                       <span
                         style={{
                           padding: '3px 10px',
@@ -413,15 +444,37 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
                         </span>
                       )}
                     </div>
-                    <h3 style={{ margin: '0 0 6px 0', fontSize: '1.15rem', color: '#fff' }}>{task.title}</h3>
+
+                    {/* 1) Task Title */}
+                    <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#fff', fontWeight: '700' }}>
+                      {index + 1}) {task.title}
+                    </h3>
+
+                    {/* Instruction Line */}
                     {task.description && (
-                      <p style={{ margin: 0, color: '#a0a0a0', fontSize: '0.86rem', lineHeight: '1.45' }}>
+                      <p style={{ margin: 0, color: '#d6d6d6', fontSize: '0.92rem', lineHeight: '1.5' }}>
                         {task.description}
                       </p>
                     )}
+
+                    {/* Optional Network / File Path */}
+                    {task.file_path && (
+                      <div style={{ fontSize: '0.86rem', color: '#00ffff', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                        Excel: {task.file_path}
+                      </div>
+                    )}
+
+                    {/* Bulleted Sub-Checklist */}
+                    {checklistItems.length > 0 && (
+                      <ul style={{ margin: '4px 0 0 0', paddingLeft: '22px', display: 'flex', flexDirection: 'column', gap: '5px', color: '#dcdcdc', fontSize: '0.9rem', lineHeight: '1.45' }}>
+                        {checklistItems.map((bullet, bIdx) => (
+                          <li key={bIdx}>{bullet}</li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
 
-                  {/* Role Actions */}
+                  {/* Role Buttons */}
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     <button
                       onClick={() => handleOpenProgressModal(task)}
@@ -475,7 +528,7 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
                 </div>
 
                 {/* Comment & Last Updated Footer */}
-                <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <div style={{ fontSize: '0.85rem', color: task.update_comment ? '#e6e6e6' : '#777' }}>
                     <strong style={{ color: '#00ffff', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.6px', marginRight: '8px' }}>
                       What was done:
@@ -579,7 +632,7 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
       {/* ADMIN ADD / EDIT TASK MODAL */}
       {isAdmin && showAdminModal && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-          <div style={{ width: '480px', maxHeight: '90vh', overflowY: 'auto', backgroundColor: '#121216', border: '1px solid rgba(0,255,255,0.35)', borderRadius: '20px', padding: '28px' }}>
+          <div style={{ width: '500px', maxHeight: '90vh', overflowY: 'auto', backgroundColor: '#121216', border: '1px solid rgba(0,255,255,0.35)', borderRadius: '20px', padding: '28px' }}>
             <h2 style={{ margin: '0 0 18px 0', color: '#00ffff', fontSize: '1.2rem' }}>
               {editingTask ? 'Edit NOC Task' : 'Add New NOC Task'}
             </h2>
@@ -590,7 +643,7 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Daily Gateway Latency Check"
+                  placeholder="e.g. Lenovo Headsets or Laptops"
                   value={formTitle}
                   onChange={(e) => setFormTitle(e.target.value)}
                   style={{ width: '100%', padding: '10px', borderRadius: '10px', background: '#1c1c24', border: '1px solid #333', color: '#fff' }}
@@ -598,13 +651,35 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', color: '#aaa', marginBottom: '5px', textTransform: 'uppercase' }}>Description / Instructions</label>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: '#aaa', marginBottom: '5px', textTransform: 'uppercase' }}>Instruction / Summary</label>
                 <textarea
-                  rows={3}
-                  placeholder="Step-by-step instructions or checklist..."
+                  rows={2}
+                  placeholder="Kindly find ... in ... and do the following:"
                   value={formDescription}
                   onChange={(e) => setFormDescription(e.target.value)}
                   style={{ width: '100%', padding: '10px', borderRadius: '10px', background: '#1c1c24', border: '1px solid #333', color: '#fff', resize: 'vertical' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: '#aaa', marginBottom: '5px', textTransform: 'uppercase' }}>Checklist Items (one per line)</label>
+                <textarea
+                  rows={5}
+                  placeholder={"perform full system updates through OS, Support Assist & Store\ninstall 7-zip\nupdate the Laptop Setup Excel"}
+                  value={formChecklistText}
+                  onChange={(e) => setFormChecklistText(e.target.value)}
+                  style={{ width: '100%', padding: '10px', borderRadius: '10px', background: '#1c1c24', border: '1px solid #333', color: '#fff', resize: 'vertical' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: '#aaa', marginBottom: '5px', textTransform: 'uppercase' }}>File / Network Path (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. \\10.1.5.201\Applications\Details\..."
+                  value={formFilePath}
+                  onChange={(e) => setFormFilePath(e.target.value)}
+                  style={{ width: '100%', padding: '10px', borderRadius: '10px', background: '#1c1c24', border: '1px solid #333', color: '#fff', fontFamily: 'monospace' }}
                 />
               </div>
 
@@ -613,7 +688,7 @@ export default function TasksView({ userRole, userEmail = '', onBack }: TasksVie
                   <label style={{ display: 'block', fontSize: '0.75rem', color: '#aaa', marginBottom: '5px', textTransform: 'uppercase' }}>Assigned To</label>
                   <input
                     type="text"
-                    placeholder="e.g. All NOC, Shahmi, Dani"
+                    placeholder="e.g. All NOC, Shahmi"
                     value={formAssignedTo}
                     onChange={(e) => setFormAssignedTo(e.target.value)}
                     style={{ width: '100%', padding: '10px', borderRadius: '10px', background: '#1c1c24', border: '1px solid #333', color: '#fff' }}
