@@ -31,6 +31,7 @@ export default function ProfileView({
   const [roleTitle, setRoleTitle] = useState(userRoleTitle);
   const [avatarUrl, setAvatarUrl] = useState(userAvatarUrl);
   const [dbPassword, setDbPassword] = useState<string>('');
+  const [isAvatarPreviewOpen, setIsAvatarPreviewOpen] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -40,6 +41,17 @@ export default function ProfileView({
   const [savingDetails, setSavingDetails] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  useEffect(() => {
+    if (!isAvatarPreviewOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsAvatarPreviewOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isAvatarPreviewOpen]);
 
   useEffect(() => {
     let active = true;
@@ -353,7 +365,7 @@ export default function ProfileView({
           boxShadow: '0 16px 40px rgba(0,0,0,0.65)'
         }}
       >
-        {/* Profile Header with Editable Avatar */}
+        {/* Profile Header with Clickable Avatar Popup */}
         <div
           style={{
             display: 'flex',
@@ -369,8 +381,8 @@ export default function ProfileView({
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <button
               type="button"
-              onClick={() => fileInputRef.current?.click()}
-              title="Click to upload profile picture"
+              onClick={() => setIsAvatarPreviewOpen(true)}
+              title="Click to view profile picture"
               style={{
                 width: '60px',
                 height: '60px',
@@ -599,6 +611,116 @@ export default function ProfileView({
           </div>
         </form>
       </div>
+
+      {/* Avatar Popup Modal */}
+      {isAvatarPreviewOpen && (
+        <div
+          onClick={() => setIsAvatarPreviewOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2000,
+            padding: '24px'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: 'relative',
+              maxWidth: '460px',
+              width: '100%',
+              backgroundColor: '#121216',
+              border: '1px solid rgba(0, 255, 255, 0.35)',
+              borderRadius: '20px',
+              padding: '24px',
+              textAlign: 'center',
+              boxShadow: '0 24px 60px rgba(0, 0, 0, 0.75)'
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setIsAvatarPreviewOpen(false)}
+              aria-label="Close profile picture preview"
+              style={{
+                position: 'absolute',
+                top: '14px',
+                right: '14px',
+                width: '34px',
+                height: '34px',
+                borderRadius: '50%',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                background: 'rgba(255, 255, 255, 0.08)',
+                color: '#fff',
+                fontSize: '1.1rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              ×
+            </button>
+
+            <div
+              style={{
+                color: '#00ffff',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+                marginBottom: '14px'
+              }}
+            >
+              Profile Picture
+            </div>
+
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={fullName}
+                style={{
+                  width: '100%',
+                  maxHeight: '360px',
+                  objectFit: 'contain',
+                  borderRadius: '14px',
+                  backgroundColor: '#0b0b0e',
+                  border: '1px solid rgba(255, 255, 255, 0.1)'
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: '140px',
+                  height: '140px',
+                  margin: '16px auto',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #2196f3, #00e5ff)',
+                  color: '#fff',
+                  fontWeight: 800,
+                  fontSize: '2.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                {initials}
+              </div>
+            )}
+
+            <div style={{ marginTop: '14px', color: '#fff', fontWeight: 700, fontSize: '1rem' }}>
+              {fullName}
+            </div>
+            <div style={{ color: '#999', fontSize: '0.82rem', marginTop: '2px' }}>
+              {roleTitle || 'NOC - Executive'}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
