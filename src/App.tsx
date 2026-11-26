@@ -37,6 +37,37 @@ interface CurrentUserState {
   avatarUrl?: string;
 }
 
+const PROFILE_CACHE_KEY = 'nocvault_member_profiles';
+
+function readCachedProfile(email: string): { name?: string; avatarUrl?: string } {
+  if (!email) return {};
+  try {
+    const raw = localStorage.getItem(PROFILE_CACHE_KEY);
+    if (!raw) return {};
+    const map = JSON.parse(raw);
+    return map[email.trim().toLowerCase()] || {};
+  } catch {
+    return {};
+  }
+}
+
+function writeCachedProfile(email: string, data: { name?: string; avatarUrl?: string }) {
+  if (!email) return;
+  try {
+    const raw = localStorage.getItem(PROFILE_CACHE_KEY);
+    const map = raw ? JSON.parse(raw) : {};
+    const key = email.trim().toLowerCase();
+    map[key] = {
+      ...(map[key] || {}),
+      ...(data.name ? { name: data.name } : {}),
+      ...(data.avatarUrl !== undefined ? { avatarUrl: data.avatarUrl } : {})
+    };
+    localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(map));
+  } catch {
+    // Ignore storage quota/sandbox issues
+  }
+}
+
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<CurrentUserState | null>(null);
@@ -75,6 +106,63 @@ export default function App() {
     syncIncidents();
   }, []);
 
+  // Hydrate full name & avatar from Supabase members table whenever currentUser changes
+  useEffect(() => {
+    let active = true;
+    const email = currentUser?.email?.trim();
+    if (!email) return;
+
+    const cached = readCachedProfile(email);
+    if ((cached.name && !currentUser?.name) || (cached.avatarUrl && !currentUser?.avatarUrl)) {
+      setCurrentUser((prev) =>
+        prev
+          ? {
+              ...prev,
+              name: prev.name || cached.name,
+              avatarUrl: prev.avatarUrl || cached.avatarUrl || ''
+            }
+          : prev
+      );
+    }
+
+    async function fetchMemberDetails() {
+      try {
+        const { data, error } = await supabase
+          .from('members')
+          .select('name, avatar_url, role')
+          .eq('email', email)
+          .maybeSingle();
+
+        if (!error && data && active) {
+          const dbName = typeof data.name === 'string' && data.name.trim() ? data.name.trim() : undefined;
+          const dbAvatar = typeof data.avatar_url === 'string' ? data.avatar_url : undefined;
+          const dbRole = typeof data.role === 'string' && data.role.trim() ? data.role.trim() : undefined;
+
+          if (dbName || dbAvatar !== undefined) {
+            writeCachedProfile(email!, { name: dbName, avatarUrl: dbAvatar });
+          }
+
+          setCurrentUser((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              name: dbName || prev.name,
+              role: dbRole || prev.role,
+              avatarUrl: dbAvatar !== undefined && dbAvatar !== '' ? dbAvatar : prev.avatarUrl || ''
+            };
+          });
+        }
+      } catch {
+        // Keep cached or login values on error
+      }
+    }
+
+    fetchMemberDetails();
+    return () => {
+      active = false;
+    };
+  }, [currentUser?.email]);
+
   const handleLoginTrigger = (userData: {
     email: string;
     role: string;
@@ -82,11 +170,18 @@ export default function App() {
     avatar_url?: string;
     avatarUrl?: string;
   }) => {
+    const cached = readCachedProfile(userData.email);
+    const resolvedName =
+      userData.name && !userData.name.includes('@')
+        ? userData.name.trim()
+        : cached.name || undefined;
+    const resolvedAvatar = userData.avatarUrl || userData.avatar_url || cached.avatarUrl || '';
+
     setCurrentUser({
       email: userData.email,
       role: userData.role,
-      name: userData.name,
-      avatarUrl: userData.avatarUrl || userData.avatar_url || ''
+      name: resolvedName,
+      avatarUrl: resolvedAvatar
     });
 
     setIsLoading(true);
@@ -114,7 +209,8 @@ export default function App() {
           {activeTab === 'home' && (
             <KnowledgeBase
               userRole={formattedRole}
-              userName={currentUser?.name || currentUser?.email || 'NOC Engineer'}
+              userName={currentUser?.name || ''}
+              userEmail={currentUser?.email || ''}
               userAvatarUrl={currentUser?.avatarUrl || ''}
               customIncidents={incidents}
               setActiveTab={setActiveTab}
@@ -172,6 +268,10 @@ export default function App() {
               userAvatarUrl={currentUser?.avatarUrl || ''}
               onBack={() => setActiveTab('home')}
               onProfileUpdated={({ fullName, email, avatarUrl }) => {
+                writeCachedProfile(email || currentUser?.email || '', {
+                  name: fullName,
+                  avatarUrl
+                });
                 setCurrentUser((prev) =>
                   prev
                     ? {

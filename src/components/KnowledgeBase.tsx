@@ -29,11 +29,11 @@ export default function KnowledgeBase({
   const [resolvedAvatar, setResolvedAvatar] = useState(userAvatarUrl);
 
   useEffect(() => {
-    if (userName) setResolvedName(userName);
+    setResolvedName(userName);
   }, [userName]);
 
   useEffect(() => {
-    if (userAvatarUrl) setResolvedAvatar(userAvatarUrl);
+    setResolvedAvatar(userAvatarUrl);
   }, [userAvatarUrl]);
 
   useEffect(() => {
@@ -44,12 +44,16 @@ export default function KnowledgeBase({
         const { data, error } = await supabase
           .from('members')
           .select('name, avatar_url')
-          .ilike('email', userEmail.trim())
+          .eq('email', userEmail.trim())
           .maybeSingle();
 
         if (!error && data && active) {
-          if (data.name) setResolvedName(data.name);
-          if (data.avatar_url) setResolvedAvatar(data.avatar_url);
+          if (typeof data.name === 'string' && data.name.trim()) {
+            setResolvedName(data.name.trim());
+          }
+          if (typeof data.avatar_url === 'string' && data.avatar_url) {
+            setResolvedAvatar(data.avatar_url);
+          }
         }
       } catch {
         // Silent fallback if offline or sandboxed
@@ -61,8 +65,9 @@ export default function KnowledgeBase({
     };
   }, [userEmail]);
 
-  const rawName = resolvedName?.trim() || '';
-  const displayName = rawName && !rawName.includes('@') ? rawName : 'NOC Engineer';
+  const candidateName = (resolvedName || userName || '').trim();
+  const displayName =
+    candidateName && !candidateName.includes('@') ? candidateName : 'NOC Engineer';
 
   const safeIncidents = Array.isArray(customIncidents) ? customIncidents : [];
 
