@@ -11,6 +11,7 @@ import PageLayout from './components/PageLayout';
 import { ThemeProvider } from './context/ThemeContext';
 import { supabase } from './components/supabaseClient';
 import TasksView from './components/TasksView';
+import FloorMapView from './components/FloorMapView';
 
 const DEFAULT_INCIDENTS = [
   {
@@ -187,6 +188,10 @@ export default function App() {
               userEmail={currentUser?.email || ''}
               onBack={() => setActiveTab('home')}
             />
+          )}
+
+          {activeTab === 'floormap' && (
+            <FloorMapView onBack={() => setActiveTab('home')} />
           )}
 
         </PageLayout>

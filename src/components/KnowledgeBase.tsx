@@ -76,6 +76,15 @@ export default function KnowledgeBase({
       action: () => setActiveTab('tasks'),
       btnText: 'View Tasks',
       image: '/images/task.png'
+    },
+    {
+    id: 'floormap',
+    title: 'Floor Map',
+    desc: 'Menara TA One floor levels, active projects, hours of operations, and operating days.',
+    tags: ['FLOORS', 'PROJECTS', 'HOURS'],
+    action: () => setActiveTab('floormap'),
+    btnText: 'View Floor Map',
+    image: '/images/map.png'
     }
   ];
 
