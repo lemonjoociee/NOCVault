@@ -31,7 +31,7 @@ const DEFAULT_INCIDENTS = [
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentUser, setCurrentUser] = useState<{ email: string; role: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ email: string; role: string; name?: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
@@ -67,7 +67,7 @@ export default function App() {
     syncIncidents();
   }, []);
 
-  const handleLoginTrigger = (userData: { email: string; role: string }) => {
+  const handleLoginTrigger = (userData: { email: string; role: string; name?: string }) => {
     setCurrentUser(userData);
 
     setIsLoading(true);
@@ -112,6 +112,28 @@ export default function App() {
             <DocumentsView
               customIncidents={incidents}
               onBack={() => setActiveTab('home')}
+              onUpdateIncident={async (updatedItem: any) => {
+                const nextList = incidents.map((item) =>
+                  item.id === updatedItem.id ? updatedItem : item
+                );
+                setIncidents(nextList);
+                localStorage.setItem('nocvault_incidents', JSON.stringify(nextList));
+                try {
+                  await supabase.from('incidents').update(updatedItem).eq('id', updatedItem.id);
+                } catch {
+                  // Saved to localStorage cache
+                }
+              }}
+              onDeleteIncident={async (incidentId: string | number) => {
+                const nextList = incidents.filter((item) => item.id !== incidentId);
+                setIncidents(nextList);
+                localStorage.setItem('nocvault_incidents', JSON.stringify(nextList));
+                try {
+                  await supabase.from('incidents').delete().eq('id', incidentId);
+                } catch {
+                  // Saved to localStorage cache
+                }
+              }}
             />
           )}
 
@@ -123,7 +145,14 @@ export default function App() {
           )}
 
           {activeTab === 'profile' && (
-            <ProfileView onBack={() => setActiveTab('home')} />
+            <ProfileView
+              userEmail={currentUser?.email || ''}
+              userName={currentUser?.name || ''}
+              onBack={() => setActiveTab('home')}
+              onProfileUpdated={({ fullName, email }) => {
+                setCurrentUser((prev) => (prev ? { ...prev, name: fullName, email } : prev));
+              }}
+            />
           )}
 
           {/* Accessible by both Admin and NOC users */}

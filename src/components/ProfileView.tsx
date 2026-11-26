@@ -11,14 +11,16 @@ interface ProfileViewProps {
 
 export default function ProfileView({
   onBack,
-  userEmail = 'engineer@scicom.com.my',
-  userName = 'NOC Engineer',
-  userRoleTitle = 'NOC Operations',
+  userEmail = 'izzul.azhar@scicom.com.my',
+  userName = 'Muhammad Izzul Dinie Bin Azhar',
+  userRoleTitle = 'NOC - Executive',
   onProfileUpdated
 }: ProfileViewProps) {
+  const [memberId, setMemberId] = useState<number | null>(null);
   const [fullName, setFullName] = useState(userName);
   const [email, setEmail] = useState(userEmail);
   const [roleTitle, setRoleTitle] = useState(userRoleTitle);
+  const [dbPassword, setDbPassword] = useState<string>('');
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -30,31 +32,37 @@ export default function ProfileView({
 
   useEffect(() => {
     let active = true;
-    async function loadCurrentUser() {
+    async function loadMemberRow() {
+      if (!userEmail) return;
       try {
-        const { data, error } = await supabase.auth.getUser();
-        if (error || !data?.user || !active) return;
+        const { data, error } = await supabase
+          .from('members')
+          .select('id, name, email, role, password')
+          .eq('email', userEmail)
+          .single();
 
-        const meta = data.user.user_metadata || {};
-        if (meta.full_name) setFullName(meta.full_name);
-        if (data.user.email) setEmail(data.user.email);
-        if (meta.role_title) setRoleTitle(meta.role_title);
+        if (!error && data && active) {
+          setMemberId(data.id);
+          if (data.name) setFullName(data.name);
+          if (data.email) setEmail(data.email);
+          if (typeof data.password === 'string') setDbPassword(data.password);
+        }
       } catch {
         // Keep initial props if offline or in sandbox
       }
     }
-    loadCurrentUser();
+    loadMemberRow();
     return () => {
       active = false;
     };
-  }, []);
+  }, [userEmail]);
 
-  const initials = (fullName || 'NE')
+  const initials = (fullName || 'MI')
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() || '')
-    .join('') || 'NE';
+    .join('') || 'MI';
 
   const handleSaveDetails = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,51 +81,26 @@ export default function ProfileView({
     setStatusMessage(null);
 
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      const authPayload: { email?: string; data: Record<string, any> } = {
-        data: {
-          full_name: cleanName,
-          role_title: cleanRole
-        }
-      };
-
-      if (userData?.user?.email && cleanEmail !== userData.user.email) {
-        authPayload.email = cleanEmail;
-      }
-
-      const { error: authError } = await supabase.auth.updateUser(authPayload);
-      if (authError) {
-        throw authError;
-      }
-
-      if (userData?.user?.id) {
-        await supabase
-          .from('profiles')
-          .upsert(
-            {
-              id: userData.user.id,
-              full_name: cleanName,
-              email: cleanEmail,
-              role_title: cleanRole
-            },
-            { onConflict: 'id' }
-          );
-      }
-
-      onProfileUpdated?.({ fullName: cleanName, email: cleanEmail, roleTitle: cleanRole });
-      setStatusMessage({
-        type: 'success',
-        text:
-          authPayload.email
-            ? 'Profile saved. Please check your new email inbox to confirm the email change.'
-            : 'Personal details updated and saved.'
+      const query = supabase.from('members').update({
+        name: cleanName,
+        email: cleanEmail
       });
-    } catch (err: any) {
-      // Fallback so UI still reflects edits in local/demo mode if Supabase isn't configured
+
+      const { data, error } = memberId
+        ? await query.eq('id', memberId).select().single()
+        : await query.eq('email', userEmail).select().single();
+
+      if (error) {
+        throw error;
+      }
+
+      if (data?.id) setMemberId(data.id);
       onProfileUpdated?.({ fullName: cleanName, email: cleanEmail, roleTitle: cleanRole });
+      setStatusMessage({ type: 'success', text: 'Personal details saved to members table.' });
+    } catch (err: any) {
       setStatusMessage({
         type: 'error',
-        text: err?.message || 'Could not sync details with server.'
+        text: err?.message || 'Failed to update member details.'
       });
     } finally {
       setSavingDetails(false);
@@ -138,34 +121,33 @@ export default function ProfileView({
       return;
     }
 
+    if (currentPassword && dbPassword && currentPassword !== dbPassword) {
+      setStatusMessage({ type: 'error', text: 'Current password does not match.' });
+      return;
+    }
+
     setSavingPassword(true);
     setStatusMessage(null);
 
     try {
-      const targetEmail = (await supabase.auth.getUser()).data?.user?.email || email;
-
-      if (currentPassword && targetEmail) {
-        const { error: verifyError } = await supabase.auth.signInWithPassword({
-          email: targetEmail,
-          password: currentPassword
-        });
-        if (verifyError) {
-          throw new Error('Current password is incorrect.');
-        }
-      }
-
-      const { error: passError } = await supabase.auth.updateUser({
-        password: newPassword
+      const query = supabase.from('members').update({
+        password: newPassword,
+        must_change_password: false
       });
 
-      if (passError) {
-        throw passError;
+      const { error } = memberId
+        ? await query.eq('id', memberId)
+        : await query.eq('email', email.trim() || userEmail);
+
+      if (error) {
+        throw error;
       }
 
+      setDbPassword(newPassword);
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      setStatusMessage({ type: 'success', text: 'Password updated successfully.' });
+      setStatusMessage({ type: 'success', text: 'Password updated in members table.' });
     } catch (err: any) {
       setStatusMessage({
         type: 'error',
@@ -178,7 +160,6 @@ export default function ProfileView({
 
   return (
     <div style={{ minHeight: '100vh', padding: '40px 20px', color: '#fff', position: 'relative', zIndex: 10 }}>
-      {/* Top Header */}
       <div style={{ maxWidth: '880px', margin: '0 auto 24px auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
         <div>
           <h1 style={{ fontSize: '1.8rem', textTransform: 'uppercase', letterSpacing: '1.5px', margin: '0 0 6px 0' }}>
@@ -207,7 +188,6 @@ export default function ProfileView({
         </button>
       </div>
 
-      {/* Feedback Banner */}
       {statusMessage && (
         <div
           style={{
@@ -233,7 +213,6 @@ export default function ProfileView({
         </div>
       )}
 
-      {/* Personal Details Card */}
       <div
         style={{
           maxWidth: '880px',
@@ -335,7 +314,6 @@ export default function ProfileView({
         </form>
       </div>
 
-      {/* Change Password Card */}
       <div
         style={{
           maxWidth: '880px',
